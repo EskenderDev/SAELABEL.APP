@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EditorElementDefinition, UpsertEditorElementPayload } from "@/lib/api/client";
 import { createEditorApi } from "@/lib/api/client";
+import JsBarcode from "jsbarcode";
+import QRCode from "qrcode";
 
 type Props = {
   xml: string;
@@ -36,6 +38,7 @@ type Obj = {
   skewX: number;
   skewY: number;
   groupId?: string;
+  barcodeKind?: string;
 };
 type Parsed = {
   kind: Kind;
@@ -68,6 +71,7 @@ type LayerNode =
   | { kind: "group"; groupId: string; members: Obj[] }
   | { kind: "item"; object: Obj };
 type Unit = "mm" | "cm" | "in" | "pt";
+type Guideline = { id: string; orientation: "horizontal" | "vertical"; posPt: number };
 
 const MIN = 4;
 const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
@@ -110,6 +114,52 @@ const ICON: Record<(typeof TYPES)[number], any> = {
   ),
 };
 
+const BarcodeImage = ({ value, kind, width, height, zoom, onResize }: { value: string; kind?: string; width: number; height: number; zoom: number; onResize?: (w: number, h: number) => void }) => {
+  const [imgData, setImgData] = useState<string>("");
+  
+  useEffect(() => {
+    if (!value) return;
+    const format = (kind || "CODE128").toUpperCase();
+    
+    if (format === "QR") {
+      QRCode.toDataURL(value, {
+        margin: 0,
+        width: Math.round(Math.min(width, height) * zoom * 2),
+        color: { dark: "#000000", light: "#ffffff00" }
+      }).then(url => {
+        setImgData(url);
+        // QR is square, use its requested size or default
+        if (onResize) onResize(width, height);
+      })
+        .catch(err => console.error("QR render error:", err));
+    } else {
+      const canvas = document.createElement("canvas");
+      try {
+        JsBarcode(canvas, value, {
+          format,
+          width: Math.max(1, Math.round(2 * zoom)),
+          height: Math.max(10, Math.round(height * zoom)),
+          displayValue: false,
+          margin: 0,
+          background: "transparent",
+          lineColor: "#000",
+        });
+        setImgData(canvas.toDataURL());
+        
+        // Match the bounding box to the actual rendered barcode
+        if (onResize) {
+          const actualWidthPt = canvas.width / (zoom * 2); // Approximation 
+          onResize(actualWidthPt, height);
+        }
+      } catch (e) {
+        console.warn("Barcode render error:", e);
+      }
+    }
+  }, [value, kind, zoom, height, width]);
+
+  return imgData ? <img src={imgData} alt={value} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} /> : null;
+};
+
 const n = (v: string | null | undefined, f: number) => {
   const p = Number.parseFloat((v ?? "").replace("pt", ""));
   return Number.isFinite(p) ? p : f;
@@ -133,6 +183,56 @@ const fromUnit = (value: number, unit: Unit): number => {
   return (value / 2.54) * PT_PER_IN; // cm
 };
 const unitStep = (unit: Unit): string => (unit === "pt" ? "1" : unit === "in" ? "0.01" : "0.1");
+
+const Ruler = ({ 
+  orientation, 
+  lengthPt, 
+  zoom, 
+  unit, 
+  offsetPt = 0,
+  onStartGuideline,
+  guidelines = []
+}: { 
+  orientation: "horizontal" | "vertical", 
+  lengthPt: number, 
+  zoom: number, 
+  unit: Unit,
+  offsetPt?: number,
+  onStartGuideline?: (e: React.MouseEvent) => void,
+  guidelines?: Guideline[]
+}) => {
+  const isH = orientation === "horizontal";
+  const stepPt = fromUnit(isH ? 10 : 10, unit === "in" ? "in" : unit); 
+  const subStepPt = stepPt / 10;
+  
+  // Viewport-based rendering
+  const ticks = [];
+  const startPt = Math.floor(-offsetPt / stepPt) * stepPt;
+  const endPt = startPt + 5000; // Large enough buffer
+
+  for (let pt = startPt; pt <= endPt; pt += subStepPt) {
+    const pos = (pt + offsetPt) * zoom;
+    const i = Math.round(pt / subStepPt);
+    const isMajor = i % 10 === 0;
+    const isMid = i % 5 === 0 && !isMajor;
+    const val = Math.round(toUnit(pt, unit));
+    
+    ticks.push(
+      <div key={pt} className={`rulerTick ${isMajor ? "major" : isMid ? "mid" : "small"}`} style={{ [isH ? "left" : "top"]: pos }}>
+        {isMajor && <span className="rulerLabel">{val}</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`ruler ${orientation}`} onMouseDown={onStartGuideline}>
+      {ticks}
+      {guidelines.filter(g => g.orientation === orientation).map(g => (
+        <div key={g.id} className="rulerIndicator" style={{ [isH ? "left" : "top"]: (g.posPt + offsetPt) * zoom }} />
+      ))}
+    </div>
+  );
+};
 
 function toAffine(o: Obj): { a: number; b: number; c: number; d: number } {
   const rad = (o.rotateDeg * Math.PI) / 180;
@@ -177,6 +277,7 @@ function parse(xml: string): Parsed {
       scaleY: n(e.getAttribute("scale_y"), 1),
       skewX: n(e.getAttribute("skew_x"), 0),
       skewY: n(e.getAttribute("skew_y"), 0),
+      barcodeKind: e.getAttribute("style") ?? undefined,
     }));
     return {
       kind: "sae",
@@ -198,6 +299,7 @@ function parse(xml: string): Parsed {
       scaleY: n(e.getAttribute("scale_y"), 1),
       skewX: n(e.getAttribute("skew_x"), 0),
       skewY: n(e.getAttribute("skew_y"), 0),
+      barcodeKind: e.getAttribute("style") ?? undefined,
     }));
     return {
       kind: "glabels",
@@ -221,6 +323,9 @@ export default function VisualCanvasEditor({
   onDocNameChange,
   onMetadataChange
 }: Props) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
   const [zoomPercent, setZoomPercent] = useState(200);
   const [error, setError] = useState("");
   const [objects, setObjects] = useState<Obj[]>([]);
@@ -248,8 +353,11 @@ export default function VisualCanvasEditor({
     objectType: "text",
     defaultWidthPt: 90,
     defaultHeightPt: 24,
-    defaultContent: "${texto}",
+    defaultContent: "${texto}"
   });
+  const [guidelines, setGuidelines] = useState<Guideline[]>([]);
+  const [activeGuidelineDrag, setActiveGuidelineDrag] = useState<{ id: string; startPosPt: number; hasExitedRuler?: boolean } | null>(null);
+  const [rulerOffsets, setRulerOffsets] = useState({ x: 0, y: 0 });
   const [activeRightTab, setActiveRightTab] = useState<"layers" | "properties" | "preview">("layers");
   
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -300,6 +408,14 @@ export default function VisualCanvasEditor({
     setTransformModeIds([]);
   }, [selectedIds]);
 
+  // Auto-sync objects to XML prop
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      applyXml();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [objects, templateWidthPt, templateHeightPt, metadata]);
+
   useEffect(() => {
     const run = async () => {
       try { await refresh(); } catch (e) { setStatus(e instanceof Error ? e.message : "No se pudo cargar libreria."); }
@@ -308,8 +424,37 @@ export default function VisualCanvasEditor({
   }, [editorApi]);
 
   useEffect(() => {
-    if (!drag) return;
+    if (!drag && !activeGuidelineDrag) return;
     const move = (ev: MouseEvent) => {
+      if (activeGuidelineDrag && viewportRef.current) {
+        const br = boardRef.current?.getBoundingClientRect();
+        if (!br) return;
+        const orient = guidelines.find(g => g.id === activeGuidelineDrag.id)?.orientation;
+        if (!orient) return;
+        
+        const isH = orient === "horizontal";
+        const mousePos = isH ? ev.clientY : ev.clientX;
+        const boardPos = isH ? br.top : br.left;
+        const newPosPt = (mousePos - boardPos) / zoom;
+        
+        // Remove if dragged back to ruler
+        const vbr = viewportRef.current.getBoundingClientRect();
+        const isInRuler = isH ? (ev.clientY < vbr.top + 24) : (ev.clientX < vbr.left + 24);
+        
+        if (!activeGuidelineDrag.hasExitedRuler && !isInRuler) {
+          setActiveGuidelineDrag(prev => prev ? { ...prev, hasExitedRuler: true } : null);
+        }
+
+        if (activeGuidelineDrag.hasExitedRuler && isInRuler) {
+          setGuidelines(prev => prev.filter(g => g.id !== activeGuidelineDrag.id));
+        } else {
+          setGuidelines(prev => prev.map(g => g.id === activeGuidelineDrag.id ? { ...g, posPt: newPosPt } : g));
+        }
+        return;
+      }
+
+      if (!drag) return;
+
       const dx = (ev.clientX - drag.startX) / zoom;
       const dy = (ev.clientY - drag.startY) / zoom;
       const dragObj = objects.find(o => o.id === drag.id);
@@ -321,7 +466,10 @@ export default function VisualCanvasEditor({
         if (!groupToMove.includes(o.id)) return o;
         if (drag.mode === "move") {
           const origin = drag.originMap?.[o.id] ?? { x: o.x, y: o.y };
-          return { ...o, x: origin.x + dx, y: origin.y + dy };
+          let nextX = origin.x + dx;
+          let nextY = origin.y + dy;
+          if (!ev.altKey) { nextX = clamp(nextX, -1000, 2000); nextY = clamp(nextY, -1000, 2000); }
+          return { ...o, x: nextX, y: nextY };
         }
         if (o.id !== drag.id) return o;
         if (drag.mode === "transform") {
@@ -359,14 +507,18 @@ export default function VisualCanvasEditor({
         if (h.includes("s")) hh = Math.max(MIN, drag.h + dy);
         if (h.includes("w")) { const r = drag.x + drag.w; x = drag.x + dx; w = Math.max(MIN, r - x); }
         if (h.includes("n")) { const b = drag.y + drag.h; y = drag.y + dy; hh = Math.max(MIN, b - y); }
+        if (x < -1000) { w += (x + 1000); x = -1000; }
+        if (y < -1000) { hh += (y + 1000); y = -1000; }
+        if (x + w > 3000) w = 3000 - x;
+        if (y + hh > 3000) hh = 3000 - y;
         return { ...o, x, y, w, h: hh };
       }));
     };
-    const up = () => setDrag(null);
+    const up = () => { setDrag(null); setActiveGuidelineDrag(null); };
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
     return () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
-  }, [drag, zoom, objects, selectedIds]);
+  }, [drag, activeGuidelineDrag, zoom, objects, selectedIds, guidelines]);
 
   useEffect(() => {
     if (!boxSelect) return;
@@ -479,13 +631,14 @@ export default function VisualCanvasEditor({
           ex.setAttribute("x_pt", pt(o.x)); ex.setAttribute("y_pt", pt(o.y)); ex.setAttribute("w_pt", pt(o.w)); ex.setAttribute("h_pt", pt(o.h));
           ex.setAttribute("rot_deg", pt(o.rotateDeg));
           ex.setAttribute("scale_x", pt(o.scaleX)); ex.setAttribute("scale_y", pt(o.scaleY)); ex.setAttribute("skew_x", pt(o.skewX)); ex.setAttribute("skew_y", pt(o.skewY));
+          if (o.type === "barcode" && o.barcodeKind) ex.setAttribute("style", o.barcodeKind.toLowerCase());
           const c = ex.getElementsByTagName("content")[0] ?? next.createElement("content");
           c.textContent = o.content;
           if (!c.parentElement) ex.appendChild(c);
         } else {
           const e = next.createElement("object");
           e.setAttribute("type", o.type); e.setAttribute("x_pt", pt(o.x)); e.setAttribute("y_pt", pt(o.y)); e.setAttribute("w_pt", pt(o.w)); e.setAttribute("h_pt", pt(o.h));
-          e.setAttribute("style", o.type === "barcode" ? "code128" : "");
+          e.setAttribute("style", o.type === "barcode" ? (o.barcodeKind?.toLowerCase() || "code128") : "");
           e.setAttribute("color", "0xff"); e.setAttribute("dx_pt", "0"); e.setAttribute("dy_pt", "0"); e.setAttribute("show_text", "false"); e.setAttribute("checksum", "false");
           e.setAttribute("rot_deg", pt(o.rotateDeg));
           e.setAttribute("scale_x", pt(o.scaleX)); e.setAttribute("scale_y", pt(o.scaleY)); e.setAttribute("skew_x", pt(o.skewX)); e.setAttribute("skew_y", pt(o.skewY));
@@ -516,6 +669,7 @@ export default function VisualCanvasEditor({
           ex.setAttribute("x", `${pt(o.x)}pt`); ex.setAttribute("y", `${pt(o.y)}pt`); ex.setAttribute("w", `${pt(o.w)}pt`); ex.setAttribute("h", `${pt(o.h)}pt`);
           ex.setAttribute("rot_deg", pt(o.rotateDeg));
           ex.setAttribute("scale_x", pt(o.scaleX)); ex.setAttribute("scale_y", pt(o.scaleY)); ex.setAttribute("skew_x", pt(o.skewX)); ex.setAttribute("skew_y", pt(o.skewY));
+          if (o.type === "barcode" && o.barcodeKind) ex.setAttribute("style", o.barcodeKind.toLowerCase());
           const m = toAffine(o);
           ex.setAttribute("a0", pt(m.a)); ex.setAttribute("a1", pt(m.b)); ex.setAttribute("a2", pt(m.c)); ex.setAttribute("a3", pt(m.d)); ex.setAttribute("a4", "0"); ex.setAttribute("a5", "0");
         } else {
@@ -528,7 +682,7 @@ export default function VisualCanvasEditor({
           e.setAttribute("rot_deg", pt(o.rotateDeg));
           e.setAttribute("scale_x", pt(o.scaleX)); e.setAttribute("scale_y", pt(o.scaleY)); e.setAttribute("skew_x", pt(o.skewX)); e.setAttribute("skew_y", pt(o.skewY));
           if (o.type === "text") { e.setAttribute("color", "0xff"); e.setAttribute("font_family", "Sans"); e.setAttribute("font_size", "10"); e.setAttribute("align", "left"); e.setAttribute("valign", "top"); const p = next.createElement("p"); p.textContent = o.content || "${texto}"; e.appendChild(p); }
-          if (o.type === "barcode") { e.setAttribute("style", "code128"); e.setAttribute("data", o.content || "${barcode}"); e.setAttribute("text", "true"); e.setAttribute("checksum", "false"); }
+          if (o.type === "barcode") { e.setAttribute("style", o.barcodeKind?.toLowerCase() || "code128"); e.setAttribute("data", o.content || "${barcode}"); e.setAttribute("text", "true"); e.setAttribute("checksum", "false"); }
           if (o.type === "box" || o.type === "ellipse") { e.setAttribute("fill_color", "0xffffff"); e.setAttribute("line_color", "0xff"); e.setAttribute("line_width", "1pt"); }
           if (o.type === "line") { e.setAttribute("dx", `${pt(o.w)}pt`); e.setAttribute("dy", "0pt"); e.setAttribute("line_color", "0xff"); e.setAttribute("line_width", "1pt"); }
           if (o.type === "image") e.setAttribute("src", o.content ?? "");
@@ -539,6 +693,35 @@ export default function VisualCanvasEditor({
     const nextXml = new XMLSerializer().serializeToString(next);
     onXmlChange(nextXml);
     return nextXml;
+  };
+
+  useEffect(() => {
+    const updateOffsets = () => {
+      if (!boardRef.current || !viewportRef.current) return;
+      const b = boardRef.current.getBoundingClientRect();
+      const v = viewportRef.current.getBoundingClientRect();
+      // Offset such that pos 0 in ruler is label top-left
+      // offsetPt * zoom + ruler_pos = board_pos
+      // Since ruler starts at viewport start:
+      // offsetPt * zoom + viewport_pos = board_pos
+      setRulerOffsets({
+        x: (b.left - v.left) / zoom,
+        y: (b.top - v.top) / zoom
+      });
+    };
+    updateOffsets();
+    const timer = setInterval(updateOffsets, 100); // Poll for scroll/layout changes
+    return () => clearInterval(timer);
+  }, [zoom, templateWidthPt, templateHeightPt]);
+
+  const startGuideline = (orientation: "horizontal" | "vertical", e: React.MouseEvent) => {
+    const id = `g-${crypto.randomUUID()}`;
+    const br = boardRef.current?.getBoundingClientRect();
+    if (!br) return;
+    const isH = orientation === "horizontal";
+    const posPt = (isH ? e.clientY - br.top : e.clientX - br.left) / zoom;
+    setGuidelines(prev => [...prev, { id, orientation, posPt }]);
+    setActiveGuidelineDrag({ id, startPosPt: posPt, hasExitedRuler: false });
   };
 
   const deleteObjects = (ids: string[]) => {
@@ -660,6 +843,7 @@ export default function VisualCanvasEditor({
 
   const resetDragState = () => { draggedElementRef.current = null; setIsBoardDragOver(false); };
 
+  if (!isMounted) return null;
   if (viewError) return <p className="editorError">{viewError}</p>;
   if (!parsed) return null;
 
@@ -724,10 +908,10 @@ export default function VisualCanvasEditor({
           </div>
           <div className="sidebarScroll">
             <div className="paletteGrid">
-              {elements.map((el) => (
+              {(elements.length > 0 ? elements : TYPES.map(t => ({ id: t, key: t, name: cap(t), category: "basic", objectType: t, defaultWidthPt: 40, defaultHeightPt: 20, defaultContent: t === "text" || t === "barcode" ? t : "" }))).map((el) => (
                 <div key={el.id} className="paletteCard">
-                  <button type="button" className="iconBtn" draggable onDragStart={(e) => { draggedElementRef.current = el; e.dataTransfer.setData("application/saelabel-element", JSON.stringify(el)); }} onDragEnd={resetDragState}><span className="ico">{ICON[el.objectType as keyof typeof ICON]}</span><small>{el.name}</small></button>
-                  {sidebarEditMode && <div className="paletteActions">{baseElementIds.includes(el.id) ? <span className="baseTag">Base</span> : <><button type="button" className="mini secondary" onClick={() => editElement(el)}>Edit</button><button type="button" className="mini secondary" onClick={() => deleteElement(el.id)}>Del</button></>}</div>}
+                  <button type="button" className="iconBtn" draggable onDragStart={(e) => { draggedElementRef.current = el as any; e.dataTransfer.setData("application/saelabel-element", JSON.stringify(el)); }} onDragEnd={resetDragState}><span className="ico">{ICON[el.objectType as keyof typeof ICON]}</span><small>{el.name}</small></button>
+                  {sidebarEditMode && <div className="paletteActions">{baseElementIds.includes(el.id) ? <span className="baseTag">Base</span> : <><button type="button" className="mini secondary" onClick={() => editElement(el as any)}>Edit</button><button type="button" className="mini secondary" onClick={() => deleteElement(el.id)}>Del</button></>}</div>}
                 </div>
               ))}
             </div>
@@ -747,19 +931,50 @@ export default function VisualCanvasEditor({
         </aside>
         <div className="sidebarResizer left" onMouseDown={(e) => { resizingSidebarRef.current = { side: "left", startX: e.clientX, startWidth: leftSidebarWidth, otherWidth: rightSidebarWidth, bodyWidth: studioBodyRef.current?.getBoundingClientRect().width ?? 0 }; }} />
         <main className="canvasArea">
-          <div ref={viewportRef} className="canvasViewport" onMouseDown={(e) => { if (e.target === e.currentTarget) { setContextMenu(null); setBoxSelect({ startClientX: e.clientX, startClientY: e.clientY, currentClientX: e.clientX, currentClientY: e.clientY }); } }} onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }} onDrop={(e) => { e.preventDefault(); resetDragState(); }}>
-            {boxSelect && viewportRef.current && (
-              <div className={`selectionRect ${boxSelect.currentClientX >= boxSelect.startClientX ? "touch" : "contain"}`} style={{ left: Math.min(boxSelect.startClientX, boxSelect.currentClientX) - viewportRef.current.getBoundingClientRect().left, top: Math.min(boxSelect.startClientY, boxSelect.currentClientY) - viewportRef.current.getBoundingClientRect().top, width: Math.abs(boxSelect.currentClientX - boxSelect.startClientX), height: Math.abs(boxSelect.currentClientY - boxSelect.startClientY) }} />
-            )}
-            <div ref={boardRef} className={`canvasBoard ${isBoardDragOver ? "dragOver" : ""} ${activeTransformKind ? `transform-${activeTransformKind}` : ""}`} style={{ width: templateWidthPt * zoom, height: templateHeightPt * zoom }} onMouseDown={(e) => { if (e.target === e.currentTarget) { setContextMenu(null); setBoxSelect({ startClientX: e.clientX, startClientY: e.clientY, currentClientX: e.clientX, currentClientY: e.clientY }); } }} onDragOver={(e) => { e.preventDefault(); setIsBoardDragOver(true); }} onDragLeave={() => setIsBoardDragOver(false)} onDrop={(e) => { e.preventDefault(); setIsBoardDragOver(false); const raw = e.dataTransfer.getData("application/saelabel-element"); const el = raw ? JSON.parse(raw) : draggedElementRef.current; if (!el || !boardRef.current) return; const br = boardRef.current.getBoundingClientRect(); const x = (e.clientX - br.left) / zoom; const y = (e.clientY - br.top) / zoom; setObjects(p => [...p, { id: `new-${crypto.randomUUID()}`, xmlIndex: null, type: el.objectType, x, y, w: el.defaultWidthPt, h: el.defaultHeightPt, content: el.defaultContent || "", rotateDeg: 0, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0 }]); }}>
-              {objects.map((o) => (
-                <button key={o.id} type="button" className={`canvasObject ${selectedIds.includes(o.id) ? "selected" : ""}`} style={{ left: o.x * zoom, top: o.y * zoom, width: o.w * zoom, height: o.h * zoom, transform: `rotate(${o.rotateDeg}deg) skew(${o.skewX}deg, ${o.skewY}deg) scale(${o.scaleX}, ${o.scaleY})` }} onMouseDown={(e) => { e.stopPropagation(); const ids = objects.find(x => x.id === o.id)?.groupId ? objects.filter(x => x.groupId === objects.find(x => x.id === o.id)?.groupId).map(x => x.id) : selectedIds.includes(o.id) ? selectedIds : [o.id]; setDrag({ mode: "move", id: o.id, startX: e.clientX, startY: e.clientY, x: o.x, y: o.y, w: o.w, h: o.h, originMap: ids.reduce((a, id) => { const f = objects.find(x => x.id === id); if (f) a[id] = { x: f.x, y: f.y }; return a; }, {} as any) }); }} onContextMenu={(e) => handleContextMenu(e, o.id)} onClick={(e) => { e.stopPropagation(); if (e.ctrlKey) setSelectedIds(p => p.includes(o.id) ? p.filter(id => id !== o.id) : [...p, o.id]); else setSelectedIds([o.id]); }} onDoubleClick={() => setTransformModeIds(p => p.includes(o.id) ? p.filter(x => x !== o.id) : [...p, o.id])}>
-                  <span>{o.type}</span><small>{o.content}</small>
-                  {selectedIds.includes(o.id) && HANDLES.map(h => (
-                    <span key={h} className={`resizeHandle ${h} ${transformModeIds.includes(o.id) ? "transform" : ""} ${h.length === 2 ? "rotateMode" : "skewMode"}`} onMouseDown={(e) => { e.stopPropagation(); const br = boardRef.current?.getBoundingClientRect(); const cx = (br?.left ?? 0) + (o.x + o.w / 2) * zoom; const cy = (br?.top ?? 0) + (o.y + o.h / 2) * zoom; setDrag({ mode: transformModeIds.includes(o.id) ? "transform" : "resize", id: o.id, handle: h, startX: e.clientX, startY: e.clientY, x: o.x, y: o.y, w: o.w, h: o.h, startRotateDeg: o.rotateDeg, startSkewX: o.skewX, startSkewY: o.skewY, centerClientX: cx, centerClientY: cy, startAngleRad: Math.atan2(e.clientY - cy, e.clientX - cx) }); }} />
-                  ))}
-                </button>
+          <div className="canvasLayout">
+            <div className="rulerCorner" />
+            <Ruler orientation="horizontal" lengthPt={templateWidthPt} zoom={zoom} unit={templateUnit} offsetPt={rulerOffsets.x} onStartGuideline={(e) => startGuideline("horizontal", e)} guidelines={guidelines} />
+            <Ruler orientation="vertical" lengthPt={templateHeightPt} zoom={zoom} unit={templateUnit} offsetPt={rulerOffsets.y} onStartGuideline={(e) => startGuideline("vertical", e)} guidelines={guidelines} />
+            <div ref={viewportRef} className="canvasViewport" onMouseDown={(e) => { if (e.target === e.currentTarget) { setContextMenu(null); setBoxSelect({ startClientX: e.clientX, startClientY: e.clientY, currentClientX: e.clientX, currentClientY: e.clientY }); } }} onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }} onDrop={(e) => { e.preventDefault(); resetDragState(); }}>
+              {guidelines.map(g => (
+                <div key={g.id} className={`guideline ${g.orientation}`} style={{ [g.orientation === "horizontal" ? "top" : "left"]: (g.posPt + (g.orientation === "horizontal" ? rulerOffsets.y : rulerOffsets.x)) * zoom + 24 }} onMouseDown={(e) => { e.stopPropagation(); setActiveGuidelineDrag({ id: g.id, startPosPt: g.posPt }); }} />
               ))}
+              {boxSelect && viewportRef.current && (
+                <div className={`selectionRect ${boxSelect.currentClientX >= boxSelect.startClientX ? "touch" : "contain"}`} style={{ left: Math.min(boxSelect.startClientX, boxSelect.currentClientX) - viewportRef.current.getBoundingClientRect().left, top: Math.min(boxSelect.startClientY, boxSelect.currentClientY) - viewportRef.current.getBoundingClientRect().top, width: Math.abs(boxSelect.currentClientX - boxSelect.startClientX), height: Math.abs(boxSelect.currentClientY - boxSelect.startClientY) }} />
+              )}
+              <div ref={boardRef} className={`canvasBoard ${isBoardDragOver ? "dragOver" : ""} ${activeTransformKind ? `transform-${activeTransformKind}` : ""}`} style={{ width: templateWidthPt * zoom, height: templateHeightPt * zoom }} onMouseDown={(e) => { if (e.target === e.currentTarget) { setContextMenu(null); setBoxSelect({ startClientX: e.clientX, startClientY: e.clientY, currentClientX: e.clientX, currentClientY: e.clientY }); } }} onDragOver={(e) => { e.preventDefault(); setIsBoardDragOver(true); }} onDragLeave={() => setIsBoardDragOver(false)} onDrop={(e) => { e.preventDefault(); setIsBoardDragOver(false); const raw = e.dataTransfer.getData("application/saelabel-element"); const el = raw ? JSON.parse(raw) : draggedElementRef.current; if (!el || !boardRef.current) return; const br = boardRef.current.getBoundingClientRect(); const x = (e.clientX - br.left) / zoom; const y = (e.clientY - br.top) / zoom; setObjects(p => [...p, { id: `new-${crypto.randomUUID()}`, xmlIndex: null, type: el.objectType, x, y, w: el.defaultWidthPt, h: el.defaultHeightPt, content: el.defaultContent || "", rotateDeg: 0, scaleX: 1, scaleY: 1, skewX: 0, skewY: 0 }]); }}>
+                {objects.map((o) => (
+                  <button key={o.id} type="button" className={`canvasObject ${o.type} ${selectedIds.includes(o.id) ? "selected" : ""}`} style={{ left: o.x * zoom, top: o.y * zoom, width: o.w * zoom, height: o.h * zoom, transform: `rotate(${o.rotateDeg}deg) skew(${o.skewX}deg, ${o.skewY}deg) scale(${o.scaleX}, ${o.scaleY})` }} onMouseDown={(e) => { e.stopPropagation(); const ids = objects.find(x => x.id === o.id)?.groupId ? objects.filter(x => x.groupId === objects.find(x => x.id === o.id)?.groupId).map(x => x.id) : selectedIds.includes(o.id) ? selectedIds : [o.id]; setDrag({ mode: "move", id: o.id, startX: e.clientX, startY: e.clientY, x: o.x, y: o.y, w: o.w, h: o.h, originMap: ids.reduce((a, id) => { const f = objects.find(x => x.id === id); if (f) a[id] = { x: f.x, y: f.y }; return a; }, {} as any) }); }} onContextMenu={(e) => handleContextMenu(e, o.id)} onClick={(e) => { e.stopPropagation(); if (e.ctrlKey) setSelectedIds(p => p.includes(o.id) ? p.filter(id => id !== o.id) : [...p, o.id]); else setSelectedIds([o.id]); }} onDoubleClick={() => setTransformModeIds(p => p.includes(o.id) ? p.filter(x => x !== o.id) : [...p, o.id])}>
+                    <span>{o.type}</span>
+                    {o.type === "image" ? (
+                      o.content ? <img src={o.content} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} /> : <div className="imgPlaceholder">Imagen</div>
+                    ) : o.type === "barcode" ? (
+                      <div className="barcodeViz" style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <BarcodeImage 
+                          value={o.content || "123456"} 
+                          kind={o.barcodeKind} 
+                          width={o.w} 
+                          height={o.h} 
+                          zoom={zoom} 
+                          onResize={(w, h) => {
+                            if (Math.abs(o.w - w) > 0.5 || Math.abs(o.h - h) > 0.5) {
+                              setObjects(p => p.map(x => x.id === o.id ? { ...x, w, h } : x));
+                            }
+                          }}
+                        />
+                        <span className="kindBadge" style={{ position: "absolute", bottom: "-12px", fontSize: "8px", background: "transparent", padding: "1px 4px", borderRadius: "4px", color: "rgba(0,0,0,0.5)" }}>{o.barcodeKind || "CODE128"}</span>
+                      </div>
+                    ) : o.type === "line" ? (
+                      <div className="lineViz" style={{ width: "100%", height: "100%", background: "currentColor" }} />
+                    ) : (
+                      <small>{o.content}</small>
+                    )}
+                    {selectedIds.includes(o.id) && HANDLES.map(h => (
+                      <span key={h} className={`resizeHandle ${h} ${transformModeIds.includes(o.id) ? "transform" : ""} ${h.length === 2 ? "rotateMode" : "skewMode"}`} onMouseDown={(e) => { e.stopPropagation(); const br = boardRef.current?.getBoundingClientRect(); const cx = (br?.left ?? 0) + (o.x + o.w / 2) * zoom; const cy = (br?.top ?? 0) + (o.y + o.h / 2) * zoom; setDrag({ mode: transformModeIds.includes(o.id) ? "transform" : "resize", id: o.id, handle: h, startX: e.clientX, startY: e.clientY, x: o.x, y: o.y, w: o.w, h: o.h, startRotateDeg: o.rotateDeg, startSkewX: o.skewX, startSkewY: o.skewY, centerClientX: cx, centerClientY: cy, startAngleRad: Math.atan2(e.clientY - cy, e.clientX - cx) }); }} />
+                    ))}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </main>
@@ -795,28 +1010,59 @@ export default function VisualCanvasEditor({
                   <label>Escala Y<input type="number" step="0.1" value={sel.scaleY} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, scaleY: Number(e.target.value) } : x))} /></label>
                   <label>Sesgado X (°)<input type="number" value={sel.skewX} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, skewX: Number(e.target.value) } : x))} /></label>
                   <label>Sesgado Y (°)<input type="number" value={sel.skewY} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, skewY: Number(e.target.value) } : x))} /></label>
+                  {sel.type === "barcode" && (
+                    <label className="full">Tipo Barcode
+                      <select value={sel.barcodeKind || "CODE128"} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, barcodeKind: e.target.value } : x))}>
+                        {["CODE128", "EAN13", "QR", "UPC", "CODE39"].map(k => <option key={k} value={k}>{k}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  {sel.type === "image" && (
+                    <div className="full imgUploadRow">
+                      <button type="button" className="mini" onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (loadEv) => { setObjects(p => p.map(x => x.id === sel.id ? { ...x, content: loadEv.target?.result as string } : x)); }; reader.readAsDataURL(file); } }; input.click(); }}>Cargar Imagen</button>
+                    </div>
+                  )}
                   <label className="full">Contenido<input value={sel.content} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, content: e.target.value } : x))} /></label>
                 </div>
               </div>
             )}
             {activeRightTab === "preview" && (
               <div className="previewPanel">
-                <div className="previewViewport"><div className="previewLabel" style={{ width: templateWidthPt * previewScale, height: templateHeightPt * previewScale }}>{objects.map(o => <div key={o.id} className={`previewObject ${o.type}`} style={{ left: o.x * previewScale, top: o.y * previewScale, width: o.w * previewScale, height: o.h * previewScale, transform: `rotate(${o.rotateDeg}deg) scale(${o.scaleX}, ${o.scaleY})` }} />)}</div></div>
+                <div className="previewViewport">
+                  <div className="previewLabel" style={{ width: templateWidthPt * previewScale, height: templateHeightPt * previewScale }}>
+                    {objects.map(o => (
+                      <div key={o.id} className={`previewObject ${o.type}`} style={{ left: o.x * previewScale, top: o.y * previewScale, width: o.w * previewScale, height: o.h * previewScale, transform: `rotate(${o.rotateDeg}deg) scale(${o.scaleX}, ${o.scaleY})` }}>
+                        {o.type === "barcode" && <BarcodeImage value={o.content || "123456"} kind={o.barcodeKind} width={o.w} height={o.h} zoom={previewScale} />}
+                        {o.type === "image" && o.content && <img src={o.content} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />}
+                        {o.type === "line" && <div className="lineViz" style={{ width: "100%", height: "100%", background: "currentColor" }} />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
             {status && <p className="status">{status}</p>}
           </div>
         </aside>
       </div>
-      <footer className="studioFooter">
-        <div className="metaStats"><span>Doc: {parsed.kind}</span><span>Size: {toUnit(templateWidthPt, templateUnit).toFixed(2)} x {toUnit(templateHeightPt, templateUnit).toFixed(2)} {templateUnit}</span><span>Objs: {objects.length}</span></div>
-      </footer>
       {contextMenu && (
         <div className="contextMenu" style={{ left: contextMenu.x, top: contextMenu.y }}>
-          <div className="menuItem" onClick={() => duplicateObjects(selectedIds)}>Duplicar</div>
-          <div className="menuItem" onClick={() => groupSelected()}>Agrupar</div>
-          <div className="menuItem" onClick={() => ungroupSelected()}>Desagrupar</div>
-          <div className="menuItem danger" onClick={() => deleteObjects(selectedIds)}>Eliminar</div>
+          {contextMenu.id ? (
+            <>
+              <div className="menuItem" onClick={() => moveLayer(contextMenu.id!, "up")}>Subir capa</div>
+              <div className="menuItem" onClick={() => moveLayer(contextMenu.id!, "down")}>Bajar capa</div>
+              <div className="menuItem" onClick={() => bringToFront(contextMenu.id!)}>Traer al frente</div>
+              <div className="menuItem" onClick={() => sendToBack(contextMenu.id!)}>Enviar al fondo</div>
+              <div className="menuLine" />
+              <div className="menuItem" onClick={() => duplicateObjects(selectedIds)}>Duplicar</div>
+              <div className="menuItem" onClick={() => groupSelected()}>Agrupar</div>
+              <div className="menuItem" onClick={() => ungroupSelected()}>Desagrupar</div>
+              <div className="menuLine" />
+              <div className="menuItem danger" onClick={() => deleteObjects(selectedIds)}>Eliminar</div>
+            </>
+          ) : (
+            <div className="menuItem" onClick={() => setSelectedIds([])}>Limpiar seleccion</div>
+          )}
         </div>
       )}
     </section>

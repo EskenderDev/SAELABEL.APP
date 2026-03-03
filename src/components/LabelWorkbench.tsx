@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createLabelsApi, DEFAULT_API_BASE_URL, createEditorApi } from "@/lib/api/client";
 import type { EditorDocumentSummary, UpsertEditorDocumentPayload } from "@/lib/api/client";
 import VisualCanvasEditor from "@/components/VisualCanvasEditor";
@@ -677,105 +678,129 @@ export default function LabelWorkbench() {
 
   return (
     <section className="panel visualMode">
-      <nav className="appMenu">
-        <details className="menuDropdown">
-          <summary className="menuItem active">Archivo</summary>
-          <div className="menuDropdownList">
-            <button type="button" className="menuDropdownItem" onClick={() => { openNewDocumentTypeModal(); closeAllMenus(); }}>
-              Nuevo...
-            </button>
-            <button type="button" className="menuDropdownItem" onClick={() => { setPropertiesModalOpen(true); closeAllMenus(); }}>
-              Propiedades
-            </button>
-            <div className="menuDivider" />
-            <button type="button" className="menuDropdownItem" onClick={() => { saveDoc(); closeAllMenus(); }}>
-              Guardar
-            </button>
-            <button type="button" className="menuDropdownItem" onClick={() => { setSaveAsName(docName + " (Copia)"); setSaveAsModalOpen(true); closeAllMenus(); }}>
-              Guardar como...
-            </button>
-            <button type="button" className="menuDropdownItem" onClick={() => { exportDoc(); closeAllMenus(); }}>
-              Exportar
-            </button>
-            <button type="button" className="menuDropdownItem" onClick={() => { exportToSaeSystem(); closeAllMenus(); }}>
-              Exportar a SAE System
-            </button>
-            <div className="menuDivider" />
-            <details className="menuSubDropdown">
-              <summary className="menuDropdownItem">Etiquetas recientes</summary>
-              <div className="menuSubDropdownList">
-                {documents.length > 0 ? documents.slice(0, 10).map(d => (
-                  <button key={d.id} type="button" className="menuDropdownItem" onClick={() => { loadDocument(d.id); closeAllMenus(); }}>
-                    {d.name}
+      <div className="studioWrapper">
+        <nav className="appMenu" data-tauri-drag-region>
+          <details className="menuDropdown">
+            <summary className="menuItem active">Archivo</summary>
+            <div className="menuDropdownList">
+              <button type="button" className="menuDropdownItem" onClick={() => { openNewDocumentTypeModal(); closeAllMenus(); }}>
+                Nuevo...
+              </button>
+              <button type="button" className="menuDropdownItem" onClick={() => { setPropertiesModalOpen(true); closeAllMenus(); }}>
+                Propiedades
+              </button>
+              <div className="menuDivider" />
+              <button type="button" className="menuDropdownItem" onClick={() => { saveDoc(); closeAllMenus(); }}>
+                Guardar
+              </button>
+              <button type="button" className="menuDropdownItem" onClick={() => { setSaveAsName(docName + " (Copia)"); setSaveAsModalOpen(true); closeAllMenus(); }}>
+                Guardar como...
+              </button>
+              <button type="button" className="menuDropdownItem" onClick={() => { exportDoc(); closeAllMenus(); }}>
+                Exportar
+              </button>
+              <button type="button" className="menuDropdownItem" onClick={() => { exportToSaeSystem(); closeAllMenus(); }}>
+                Exportar a SAE System
+              </button>
+              <div className="menuDivider" />
+              <details className="menuSubDropdown">
+                <summary className="menuDropdownItem">Etiquetas recientes</summary>
+                <div className="menuSubDropdownList">
+                  {documents.length > 0 ? documents.slice(0, 10).map(d => (
+                    <button key={d.id} type="button" className="menuDropdownItem" onClick={() => { loadDocument(d.id); closeAllMenus(); }}>
+                      {d.name}
+                    </button>
+                  )) : <div className="menuDropdownItem disabled">No hay etiquetas</div>}
+                </div>
+              </details>
+              <div className="menuDivider" />
+              <button type="button" className="menuDropdownItem" onClick={() => { openApiConfigModal(); closeAllMenus(); }}>
+                Config API
+              </button>
+            </div>
+          </details>
+          <details className="menuDropdown">
+            <summary className="menuItem">Editar</summary>
+            <div className="menuDropdownList">
+              <details className="menuSubDropdown">
+                <summary className="menuDropdownItem">Procesar</summary>
+                <div className="menuSubDropdownList">
+                  <button type="button" className={`menuDropdownItem ${action === "parse" ? "active" : ""}`} onClick={() => { setAction("parse"); closeAllMenus(); }}>
+                    parse
                   </button>
-                )) : <div className="menuDropdownItem disabled">No hay etiquetas</div>}
-              </div>
-            </details>
-            <div className="menuDivider" />
-            <button type="button" className="menuDropdownItem" onClick={() => { openApiConfigModal(); closeAllMenus(); }}>
-              Config API
+                  <button type="button" className={`menuDropdownItem ${action === "convert-to-glabels" ? "active" : ""}`} onClick={() => { setAction("convert-to-glabels"); closeAllMenus(); }}>
+                    convert-to-glabels
+                  </button>
+                  <button type="button" className={`menuDropdownItem ${action === "convert-from-glabels" ? "active" : ""}`} onClick={() => { setAction("convert-from-glabels"); closeAllMenus(); }}>
+                    convert-from-glabels
+                  </button>
+                </div>
+              </details>
+              <button type="button" className="menuDropdownItem" onClick={() => { setShowResultModal(true); closeAllMenus(); }}>
+                Ver resultado
+              </button>
+            </div>
+          </details>
+          <details className="menuDropdown">
+            <summary className="menuItem">Vista</summary>
+            <div className="menuDropdownList">
+              <button type="button" className="menuDropdownItem" onClick={restorePanels}>
+                Restaurar paneles
+              </button>
+            </div>
+          </details>
+          <div className="menuItem" onClick={() => window.open("https://github.com/EskenderDev/SAELABEL", "_blank")}>GitHub</div>
+          <div className="menuItem" onClick={() => alert("SAELABEL App Studio v1.0.0")}>Acerca de</div>
+
+          <div style={{ flex: 1, minWidth: '20px' }} data-tauri-drag-region />
+
+          <div className="windowControls">
+            <button className="winBtn" onClick={() => getCurrentWindow().minimize()}>
+              <svg width="10" height="1" viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" strokeWidth="1"/></svg>
+            </button>
+            <button className="winBtn" onClick={() => getCurrentWindow().toggleMaximize()}>
+              <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1"/></svg>
+            </button>
+            <button className="winBtn close" onClick={() => getCurrentWindow().close()}>
+              <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.2"/></svg>
             </button>
           </div>
-        </details>
-        <details className="menuDropdown">
-          <summary className="menuItem">Editar</summary>
-          <div className="menuDropdownList">
-            <details className="menuSubDropdown">
-              <summary className="menuDropdownItem">Procesar</summary>
-              <div className="menuSubDropdownList">
-                <button type="button" className={`menuDropdownItem ${action === "parse" ? "active" : ""}`} onClick={() => { setAction("parse"); closeAllMenus(); }}>
-                  parse
-                </button>
-                <button type="button" className={`menuDropdownItem ${action === "convert-to-glabels" ? "active" : ""}`} onClick={() => { setAction("convert-to-glabels"); closeAllMenus(); }}>
-                  convert-to-glabels
-                </button>
-                <button type="button" className={`menuDropdownItem ${action === "convert-from-glabels" ? "active" : ""}`} onClick={() => { setAction("convert-from-glabels"); closeAllMenus(); }}>
-                  convert-from-glabels
-                </button>
-              </div>
-            </details>
-            <button type="button" className="menuDropdownItem" onClick={() => { setShowResultModal(true); closeAllMenus(); }}>
-              Ver resultado
-            </button>
+        </nav>
+        <VisualCanvasEditor
+          xml={xml}
+          apiBaseUrl={apiBaseUrl}
+          timeoutMs={timeoutMs}
+          docId={docId}
+          docName={docName}
+          metadata={{
+            version: metaVersion,
+            brand: metaBrand,
+            description: metaDescription,
+            part: metaPart,
+            size: metaSize,
+          }}
+          onXmlChange={(nextXml) => {
+            setXml(nextXml);
+            setError("");
+          }}
+          onDocNameChange={setDocName}
+          onMetadataChange={(m: any) => {
+            if (m.version !== undefined) setMetaVersion(m.version);
+            if (m.brand !== undefined) setMetaBrand(m.brand);
+            if (m.description !== undefined) setMetaDescription(m.description);
+            if (m.part !== undefined) setMetaPart(m.part);
+            if (m.size !== undefined) setMetaSize(m.size);
+          }}
+        />
+        <footer className="studioFooter">
+          <div className="footerStatus">
+            <span className="dot" /> Ready
           </div>
-        </details>
-        <details className="menuDropdown">
-          <summary className="menuItem">Vista</summary>
-          <div className="menuDropdownList">
-            <button type="button" className="menuDropdownItem" onClick={restorePanels}>
-              Restaurar paneles
-            </button>
+          <div className="footerMeta">
+            {docName || "Untitled"} • {metaSize || "custom"} • SAE Studio v1.0.0
           </div>
-        </details>
-        <div className="menuItem" onClick={() => window.open("https://github.com/EskenderDev/SAELABEL", "_blank")}>GitHub</div>
-        <div className="menuItem" onClick={() => alert("SAELABEL App Studio v1.0.0")}>Acerca de</div>
-      </nav>
-      <VisualCanvasEditor
-        xml={xml}
-        apiBaseUrl={apiBaseUrl}
-        timeoutMs={timeoutMs}
-        docId={docId}
-        docName={docName}
-        metadata={{
-          version: metaVersion,
-          brand: metaBrand,
-          description: metaDescription,
-          part: metaPart,
-          size: metaSize,
-        }}
-        onXmlChange={(nextXml) => {
-          setXml(nextXml);
-          setError("");
-        }}
-        onDocNameChange={setDocName}
-        onMetadataChange={(m: any) => {
-          if (m.version !== undefined) setMetaVersion(m.version);
-          if (m.brand !== undefined) setMetaBrand(m.brand);
-          if (m.description !== undefined) setMetaDescription(m.description);
-          if (m.part !== undefined) setMetaPart(m.part);
-          if (m.size !== undefined) setMetaSize(m.size);
-        }}
-      />
+        </footer>
+      </div>
 
       {showNewTypeModal && (
         <div className="modalBackdrop">
@@ -898,6 +923,14 @@ export default function LabelWorkbench() {
           flex-direction: column;
           overflow: hidden;
           min-height: 0;
+          background: transparent !important;
+          height: 100vh;
+          width: 100%;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          margin: 0;
+          border-radius: 12px;
         }
         h1 {
           margin-top: 0;
@@ -1100,7 +1133,7 @@ export default function LabelWorkbench() {
           display: grid;
           grid-template-rows: auto minmax(0, 1fr) auto;
           border: 1px solid var(--border);
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
           background: #f8fafc;
           min-height: 0;
@@ -1109,7 +1142,7 @@ export default function LabelWorkbench() {
         .studioTopbar {
           background: #ffffff;
           border-bottom: 1px solid var(--border);
-          padding: 0.6rem 1rem;
+          padding: 0.8rem 1.5rem;
           display: flex;
           justify-content: flex-start;
           align-items: center;
@@ -1372,17 +1405,27 @@ export default function LabelWorkbench() {
           pointer-events: none;
           text-transform: lowercase;
         }
-        .mini {
-          padding: 0.4rem 0.75rem;
-          font-size: 0.8rem;
-          border-radius: 6px;
+        .studioWrapper {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          border: none;
+          border-radius: 12px;
+          box-shadow: none;
+          overflow: hidden;
+          margin: 0;
         }
         .editorStudio {
           display: flex;
           flex-direction: column;
-          height: 100vh;
+          flex: 1;
+          width: 100%;
+          max-width: none;
           overflow: hidden;
-          background: #f1f5f9;
+          background: transparent;
+          border: none;
         }
         .studioBody {
           display: grid;
@@ -1416,8 +1459,8 @@ export default function LabelWorkbench() {
           height: 100%;
           border-color: var(--border);
         }
-        .leftSidebar { border-right: 1px solid var(--border); }
-        .rightSidebar { border-left: 1px solid var(--border); }
+        .leftSidebar { border-right: 1px solid var(--border); border-radius: 0; }
+        .rightSidebar { border-left: 1px solid var(--border); border-radius: 0; }
         
         .sidebarHeader {
           padding: 1rem 1.25rem 0.5rem;
@@ -1657,21 +1700,85 @@ export default function LabelWorkbench() {
         }
         
         .canvasArea {
-          background: #e2e8f0;
+          background: #f1f5f9;
           display: flex;
           flex-direction: column;
           overflow: hidden;
           min-height: 0;
+          position: relative;
         }
+        .canvasLayout {
+          display: grid;
+          grid-template-columns: 24px 1fr;
+          grid-template-rows: 24px 1fr;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background: #f8fafc;
+        }
+        .rulerCorner {
+          grid-area: 1 / 1;
+          background: #f8fafc;
+          border-right: 1px solid var(--border);
+          border-bottom: 1px solid var(--border);
+          z-index: 60;
+        }
+        .ruler {
+          background: #fff;
+          position: relative;
+          z-index: 55;
+        }
+        .ruler.horizontal {
+          grid-area: 1 / 2;
+          height: 24px;
+          border-bottom: 1px solid var(--border);
+        }
+        .ruler.vertical {
+          grid-area: 2 / 1;
+          width: 24px;
+          border-right: 1px solid var(--border);
+        }
+        .rulerTick {
+          position: absolute;
+          background: #cbd5e1;
+        }
+        .ruler.horizontal .rulerTick { width: 1px; bottom: 0; }
+        .ruler.vertical .rulerTick { height: 1px; right: 0; }
+        
+        .rulerTick.major { background: #64748b; }
+        .ruler.horizontal .rulerTick.major { height: 12px; }
+        .ruler.vertical .rulerTick.major { width: 12px; }
+        
+        .rulerTick.mid { background: #94a3b8; }
+        .ruler.horizontal .rulerTick.mid { height: 8px; }
+        .ruler.vertical .rulerTick.mid { width: 8px; }
+        
+        .rulerTick.small { background: #e2e8f0; }
+        .ruler.horizontal .rulerTick.small { height: 5px; }
+        .ruler.vertical .rulerTick.small { width: 5px; }
+        
+        .rulerLabel {
+          position: absolute;
+          font-size: 9px;
+          color: #64748b;
+          font-weight: 600;
+        }
+        .ruler.horizontal .rulerLabel { top: 2px; transform: translateX(-50%); }
+        .ruler.vertical .rulerLabel { left: 2px; transform: translateY(-50%); }
+
         .canvasViewport {
+          grid-area: 2 / 2;
           position: relative;
           flex: 1;
           min-height: 0;
-          padding: 2rem;
+          padding: 3rem;
           overflow: auto;
           display: flex;
           align-items: center;
           justify-content: center;
+          background: #e2e8f0;
+          background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+          background-size: 20px 20px;
         }
         .studioFooter {
           border-top: 1px solid var(--border);
@@ -1713,13 +1820,10 @@ export default function LabelWorkbench() {
         .canvasBoard {
           position: relative;
           background: #ffffff;
-          background-image: 
-            linear-gradient(to right, rgba(15, 118, 110, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(15, 118, 110, 0.05) 1px, transparent 1px);
-          background-size: 20px 20px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
           border-radius: 4px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
           transform-origin: center;
+          transition: box-shadow 0.3s ease;
         }
         .canvasBoard.dragOver {
           box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.45), 0 10px 30px rgba(0,0,0,0.1);
@@ -1752,7 +1856,7 @@ export default function LabelWorkbench() {
           pointer-events: none;
           border: 1px dashed rgba(15, 118, 110, 0.55);
           background: rgba(15, 118, 110, 0.04);
-          border-radius: 6px;
+          border-radius: 0;
           z-index: 12;
         }
         .groupOutline.selected {
@@ -1762,20 +1866,48 @@ export default function LabelWorkbench() {
         .canvasObject {
           position: absolute;
           border: 1.5px solid var(--accent);
-          background: rgba(15, 118, 110, 0.05);
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(4px);
           color: var(--text);
-          border-radius: 4px;
-          padding: 0.4rem;
+          border-radius: 0;
+          padding: 0.5rem;
           font-size: 0.75rem;
           cursor: move;
           display: flex;
           flex-direction: column;
-          gap: 0.2rem;
+          gap: 0.25rem;
           user-select: none;
           transition: none !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         .canvasObject:hover {
-          filter: none;
+          background: rgba(255, 255, 255, 0.95);
+          border-color: var(--accent);
+          box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+          z-index: 15;
+        }
+        .canvasObject.ellipse {
+          border-radius: 50%;
+        }
+        .canvasObject.line, 
+        .canvasObject.barcode { 
+          padding: 0; 
+          background: transparent;
+          border-color: transparent;
+          box-shadow: none;
+        }
+        .canvasObject.line:hover,
+        .canvasObject.barcode:hover {
+          border-color: var(--accent);
+        }
+        .canvasObject.selected.line,
+        .canvasObject.selected.barcode {
+          border-color: #f59e0b;
+        }
+        .lineViz {
+          width: 100%;
+          height: 100%;
+          background: #000;
         }
         .canvasObject span { font-weight: 700; text-transform: uppercase; font-size: 0.65rem; color: var(--accent); }
         .canvasObject.selected {
@@ -1830,9 +1962,44 @@ export default function LabelWorkbench() {
           align-items: center;
           background: #ffffff;
           border-bottom: 1px solid var(--border);
-          padding: 0 1rem;
+          padding: 8px 0.5rem 0;
           flex: 0 0 auto;
           z-index: 100;
+          width: 100%;
+          margin-bottom: 0;
+          user-select: none;
+          height: 48px;
+        }
+        .windowControls {
+          display: flex;
+          align-items: center;
+          height: 100%;
+          -webkit-app-region: no-drag;
+          margin-right: 12px;
+        }
+        .winBtn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 100%;
+          background: transparent;
+          border: none;
+          color: var(--text);
+          cursor: pointer;
+          transition: background 0.2s, color 0.2s;
+          padding: 0;
+          border-radius: 0;
+        }
+        .winBtn:hover {
+          background: rgba(0,0,0,0.05);
+        }
+        .winBtn.close:hover {
+          background: #e81123;
+          color: white;
+        }
+        .menuItem, .menuDropdown summary {
+          -webkit-app-region: no-drag;
         }
         .menuField {
           margin-bottom: 0;
@@ -1898,7 +2065,7 @@ export default function LabelWorkbench() {
           min-width: 0;
         }
         .menuItem {
-          padding: 0.75rem 1rem;
+          padding: 0.6rem 1.2rem;
           font-size: 0.85rem;
           font-weight: 500;
           color: var(--text);
@@ -2000,7 +2167,7 @@ export default function LabelWorkbench() {
         }
         .previewPanel {
           border: 1px solid var(--border);
-          border-radius: 10px;
+          border-radius: 0;
           background: #f8fafc;
           padding: 0.6rem;
           margin-bottom: 1rem;
@@ -2219,6 +2386,113 @@ export default function LabelWorkbench() {
             min-width: 0;
             width: 100%;
           }
+        }
+        /* Premium Rulers & Guidelines */
+        .ruler {
+          background: #f1f5f9;
+          color: #64748b;
+          font-size: 9px;
+          border-color: #cbd5e1;
+        }
+        .ruler.horizontal { border-bottom: 1px solid #cbd5e1; }
+        .ruler.vertical { border-right: 1px solid #cbd5e1; }
+        .rulerTick { stroke: #94a3b8; }
+        .rulerTick.major { stroke: #64748b; }
+        .rulerLabel { fill: #64748b; }
+        
+        .guideline {
+          position: absolute;
+          z-index: 50;
+          pointer-events: auto;
+          transition: border-color 0.2s;
+        }
+        .guideline.horizontal {
+          width: 5000px;
+          height: 0;
+          border-top: 1px dashed #38bdf8;
+          cursor: ns-resize;
+          margin-left: -24px;
+        }
+        .guideline.vertical {
+          width: 0;
+          height: 5000px;
+          border-left: 1px dashed #38bdf8;
+          cursor: ew-resize;
+          margin-top: -24px;
+        }
+        .guideline:hover {
+          border-color: #0ea5e9;
+          border-style: solid;
+        }
+        
+        /* Barcode Visualization */
+        .barcodeViz {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+          padding: 4px;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+        .barcodeViz .bars {
+          flex: 1;
+          width: 100%;
+          display: flex;
+          align-items: stretch;
+          justify-content: center;
+          gap: 1px;
+        }
+        .barcodeViz .bar {
+          background: #000;
+        }
+        .barcodeViz small {
+          font-family: 'Courier New', Courier, monospace;
+          font-weight: bold;
+          font-size: 8px;
+          margin-top: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .barcodeViz .kindBadge {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          background: rgba(0,0,0,0.05);
+          padding: 1px 3px;
+          border-radius: 2px;
+          font-size: 6px;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+        .studioFooter {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.4rem 1rem;
+          background: #f8fafc;
+          border-top: 1px solid var(--border);
+          font-size: 0.75rem;
+          color: var(--muted);
+          flex: 0 0 auto;
+        }
+        .footerStatus {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .footerStatus .dot {
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+        }
+        .footerMeta {
+          font-weight: 500;
         }
       `}</style>
       {propertiesModalOpen && (

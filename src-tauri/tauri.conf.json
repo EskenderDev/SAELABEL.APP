@@ -14,6 +14,9 @@
       {
         "label": "main",
         "title": "SAELABEL",
+        "transparent": true,
+        "decorations": false,
+        "shadow": true,
         "width": 1200,
         "height": 860,
         "resizable": true,

@@ -1,3 +1,6 @@
+---
+---
+
 <!doctype html>
 <html lang="es">
   <head>
@@ -9,8 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <style>
       :root {
-        --bg: #f8fafc;
-        --panel: #ffffff;
+        --bg: transparent;
+        --panel: rgba(255, 255, 255, 0.9);
         --text: #0f172a;
         --muted: #475569;
         --accent: #0f766e;
@@ -18,25 +21,24 @@
         --app-vh: 100vh;
       }
 
-      body {
+      html, body {
         margin: 0;
-        font-family: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-        background: 
-          radial-gradient(circle at 0% 0%, rgba(15, 118, 110, 0.03) 0%, transparent 50%),
-          radial-gradient(circle at 100% 100%, rgba(15, 118, 110, 0.03) 0%, transparent 50%),
-          var(--bg);
-        color: var(--text);
-        letter-spacing: -0.01em;
+        background: transparent !important;
         height: var(--app-vh);
         overflow: hidden;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: var(--text);
+        letter-spacing: -0.01em;
         display: flex;
         flex-direction: column;
       }
-      html { height: var(--app-vh); overflow: hidden; }
 
       main {
         width: 100%;
-        padding: 0.75rem;
+        padding: 0;
         box-sizing: border-box;
         flex: 1 1 auto;
         min-height: 0;
@@ -44,16 +46,15 @@
         height: var(--app-vh);
       }
 
+      /* Base panel for transparency */
       .panel {
         background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.1rem;
-        box-shadow: 0 14px 34px rgba(11, 31, 43, 0.08);
+        backdrop-filter: blur(12px);
         width: 100%;
         height: 100%;
         min-height: 0;
         box-sizing: border-box;
+        border-radius: 12px;
       }
     </style>
   </head>
@@ -61,6 +62,8 @@
     <main>
       <slot />
     </main>
+  </body>
+</html>
     <script is:inline>
       (() => {
         const setAppVh = () => {
