@@ -18,7 +18,8 @@
     "jsbarcode": "^3.12.3",
     "qrcode": "^1.5.4",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.93.1",

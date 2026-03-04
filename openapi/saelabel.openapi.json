@@ -1015,6 +1015,18 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "dataList": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
           }
         }
       },

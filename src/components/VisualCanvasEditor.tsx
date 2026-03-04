@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EditorElementDefinition, UpsertEditorElementPayload } from "@/lib/api/client";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
+
+import type { EditorElementDefinition, UpsertEditorElementPayload, LogicalPrinterDto } from "@/lib/api/client";
 import { createEditorApi, createLabelsApi } from "@/lib/api/client";
-import type { LogicalPrinterDto } from "@/lib/api/client";
 import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import LogicalPrintersManagerModal from "./LogicalPrintersManagerModal";
@@ -156,28 +157,38 @@ const GROUP_ICON = (
   </svg>
 );
 
-const BarcodeImage = ({ value, kind, width, height, zoom, onResize, showText, textPosition }: { value: string; kind?: string; width: number; height: number; zoom: number; onResize?: (w: number, h: number) => void; showText?: boolean; textPosition?: string }) => {
+const replaceVars = (text: string, variables: VariableDef[]) => {
+  if (!text) return text;
+  let res = text;
+  for (const v of variables) {
+    const val = v.initial || (v.increment && v.increment !== "never" ? "1" : "0");
+    res = res.replaceAll(`\${${v.name}}`, val);
+  }
+  return res;
+};
+
+const BarcodeImage = ({ value, kind, width, height, zoom, onResize, showText, textPosition, variables = [] }: { value: string; kind?: string; width: number; height: number; zoom: number; onResize?: (w: number, h: number) => void; showText?: boolean; textPosition?: string; variables?: VariableDef[] }) => {
   const [imgData, setImgData] = useState<string>("");
   
   useEffect(() => {
     if (!value) return;
     const format = (kind || "CODE128").toUpperCase();
+    const displayValue = replaceVars(value, variables);
     
     if (format === "QR") {
-      QRCode.toDataURL(value, {
+      QRCode.toDataURL(displayValue, {
         margin: 0,
         width: Math.round(Math.min(width, height) * zoom * 2),
         color: { dark: "#000000", light: "#ffffff00" }
       }).then(url => {
         setImgData(url);
-        // QR is square, use its requested size or default
         if (onResize) onResize(width, height);
       })
         .catch(err => console.error("QR render error:", err));
     } else {
       const canvas = document.createElement("canvas");
       try {
-        JsBarcode(canvas, value, {
+        JsBarcode(canvas, displayValue, {
           format,
           width: Math.max(1, Math.round(2 * zoom)),
           height: Math.max(10, Math.round(height * zoom)),
@@ -201,12 +212,12 @@ const BarcodeImage = ({ value, kind, width, height, zoom, onResize, showText, te
           canvas.height = Math.max(20, height * zoom);
           ctx.fillStyle = "red";
           ctx.font = `${Math.round(10 * zoom)}px sans-serif`;
-          ctx.fillText(`Error Barcode: ${value}`, 5, 15);
+          ctx.fillText(`Error: ${displayValue}`, 5, 15);
           setImgData(canvas.toDataURL());
         }
       }
     }
-  }, [value, kind, zoom, height, width, showText, textPosition]);
+  }, [value, kind, zoom, height, width, showText, textPosition, variables]);
 
   return imgData ? <img src={imgData} alt={value} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} /> : null;
 };
@@ -480,6 +491,13 @@ export default function VisualCanvasEditor({
   const [printForm, setPrintForm] = useState({ printerName: "", copies: 1, isPrinting: false });
   const [showPrintersManagerModal, setShowPrintersManagerModal] = useState(false);
   const [availableLogicalPrinters, setAvailableLogicalPrinters] = useState<LogicalPrinterDto[]>([]);
+
+  // Imprimir variables
+  const [printTab, setPrintTab] = useState<"manual"|"excel">("manual");
+  const [manualVars, setManualVars] = useState<Record<string, string>>({});
+  const [excelData, setExcelData] = useState<Record<string, any>[]>([]);
+  const [excelCols, setExcelCols] = useState<string[]>([]);
+  const [excelMapping, setExcelMapping] = useState<Record<string, string>>({});
   
   const boardRef = useRef<HTMLDivElement | null>(null);
   const studioBodyRef = useRef<HTMLDivElement | null>(null);
@@ -538,11 +556,36 @@ export default function VisualCanvasEditor({
     setPrintForm(p => ({ ...p, isPrinting: true }));
     try {
       applyXml(); // Ensure current state is serialized
-      const payload = {
+      const payload: any = {
         xml,
         printerName: printForm.printerName.trim(),
         copies: printForm.copies,
       };
+
+      if (variables.length > 0) {
+        if (printTab === "manual") {
+          payload.data = manualVars;
+        } else if (printTab === "excel") {
+           if (excelData.length === 0) {
+              setStatus("Error: No hay datos de excel cargados.");
+              setPrintForm(p => ({ ...p, isPrinting: false }));
+              return;
+           }
+           payload.dataList = excelData.map(row => {
+               const dict: Record<string, string> = {};
+               for (const v of variables) {
+                   const colName = excelMapping[v.name];
+                   if (colName && row[colName] !== undefined && row[colName] !== null) {
+                       dict[v.name] = String(row[colName]);
+                   } else {
+                       dict[v.name] = "";
+                   }
+               }
+               return dict;
+           });
+        }
+      }
+
       const res = await labelsApi.print(payload);
       setStatus(`Impresión enviada a ${res.printer} exitosamente.`);
       setShowPrintModal(false);
@@ -786,6 +829,19 @@ export default function VisualCanvasEditor({
           setStatus(`Rehacer (${historyIdxRef.current + 1}/${h.length})`);
         }
       }
+      
+      // Print: Ctrl+P
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        handleShowPrintModal();
+      }
+      
+      // Save: Ctrl+S
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        applyXml();
+        setStatus("Cambios guardados manual/visualmente (Ctrl+S).");
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -859,21 +915,53 @@ export default function VisualCanvasEditor({
       // Clear existing objects in the clone to handle deletions
       while (node.firstChild) { node.removeChild(node.firstChild); }
       
+      const replaceVars = (text: string) => {
+        let res = text;
+        for (const v of variables) {
+          const val = v.initial || (v.increment && v.increment !== "never" ? "1" : "");
+          res = res.replace(new RegExp(`\\$\\{${v.name}\\}`, 'g'), val);
+        }
+        return res;
+      };
+
       for (const o of objects) {
         const e = next.createElement("object");
-        e.setAttribute("type", o.type); e.setAttribute("x_pt", pt(o.x)); e.setAttribute("y_pt", pt(o.y)); e.setAttribute("w_pt", pt(o.w)); e.setAttribute("h_pt", pt(o.h));
-        e.setAttribute("style", o.type === "barcode" ? (o.barcodeKind?.toLowerCase() || "code128") : "");
-        e.setAttribute("color", "0xff"); e.setAttribute("dx_pt", "0"); e.setAttribute("dy_pt", "0"); 
+        e.setAttribute("type", o.type); 
+        e.setAttribute("x_pt", pt(o.x)); 
+        e.setAttribute("y_pt", pt(o.y)); 
+        e.setAttribute("w_pt", pt(o.w)); 
+        e.setAttribute("h_pt", pt(o.h));
+        
+        const style = o.type === "barcode" ? (o.barcodeKind?.toLowerCase() || "code128") : "";
+        e.setAttribute("style", style);
+        
+        // Fix for lines: use width/height as dx/dy
+        if (o.type === "line") {
+          e.setAttribute("dx_pt", pt(o.w));
+          e.setAttribute("dy_pt", pt(o.h));
+        } else {
+          e.setAttribute("dx_pt", "0");
+          e.setAttribute("dy_pt", "0");
+        }
+
+        e.setAttribute("color", o.lineColor || "#000000"); 
         e.setAttribute("show_text", o.showText ? "true" : "false");
         e.setAttribute("text_pos", o.textPosition || "bottom");
         e.setAttribute("checksum", "false");
         e.setAttribute("rot_deg", pt(o.rotateDeg));
-        e.setAttribute("scale_x", pt(o.scaleX)); e.setAttribute("scale_y", pt(o.scaleY)); e.setAttribute("skew_x", pt(o.skewX)); e.setAttribute("skew_y", pt(o.skewY));
+        e.setAttribute("scale_x", pt(o.scaleX)); 
+        e.setAttribute("scale_y", pt(o.scaleY)); 
+        e.setAttribute("skew_x", pt(o.skewX)); 
+        e.setAttribute("skew_y", pt(o.skewY));
+        
         if (o.fillColor) e.setAttribute("color", o.fillColor);
         if (o.lineColor) e.setAttribute("line_color", o.lineColor);
         if (o.lineWidth) e.setAttribute("line_width", pt(o.lineWidth));
         if (o.groupId) e.setAttribute("group_id", o.groupId);
-        const c = next.createElement("content"); c.textContent = o.content; e.appendChild(c);
+        
+        const c = next.createElement("content"); 
+        c.textContent = o.content; 
+        e.appendChild(c);
         node.appendChild(e);
       }
 
@@ -1302,6 +1390,7 @@ export default function VisualCanvasEditor({
                           zoom={zoom} 
                           showText={o.showText}
                           textPosition={o.textPosition}
+                          variables={variables}
                           onResize={(w, h) => {
                             if (Math.abs(o.w - w) > 0.5 || Math.abs(o.h - h) > 0.5) {
                               setObjects(p => p.map(x => x.id === o.id ? { ...x, w, h } : x));
@@ -1340,7 +1429,7 @@ export default function VisualCanvasEditor({
                         pointerEvents: "none",
                         userSelect: "none",
                       }}>
-                        {o.content || "${texto}"}
+                        {replaceVars(o.content || "${texto}", variables)}
                       </div>
                     ) : (
                       <div style={{ 
@@ -1474,7 +1563,7 @@ export default function VisualCanvasEditor({
                       {sel.type === "barcode" && (
                         <label className="full">Tipo Barcode
                           <select value={sel.barcodeKind || "CODE128"} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, barcodeKind: e.target.value } : x))}>
-                            {["CODE128", "EAN13", "QR", "UPC", "CODE39", "ITF"].map(k => <option key={k} value={k}>{k}</option>)}
+                            {["CODE128", "CODE39", "QR", "EAN13", "EAN8", "UPCA", "UPCE", "ITF", "DATAMATRIX"].map(k => <option key={k} value={k}>{k}</option>)}
                           </select>
                         </label>
                       )}
@@ -1637,7 +1726,7 @@ export default function VisualCanvasEditor({
                   <div className="previewLabel" style={{ width: templateWidthPt * previewScale, height: templateHeightPt * previewScale }}>
                     {objects.map(o => (
                       <div key={o.id} className={`previewObject ${o.type}`} style={{ left: o.x * previewScale, top: o.y * previewScale, width: o.w * previewScale, height: o.h * previewScale, transform: `rotate(${o.rotateDeg}deg) scale(${o.scaleX}, ${o.scaleY})` }}>
-                        {o.type === "barcode" && <BarcodeImage value={o.content || "123456"} kind={o.barcodeKind} width={o.w} height={o.h} zoom={previewScale} showText={o.showText} textPosition={o.textPosition} />}
+                        {o.type === "barcode" && <BarcodeImage value={o.content || "123456"} kind={o.barcodeKind} width={o.w} height={o.h} zoom={previewScale} showText={o.showText} textPosition={o.textPosition} variables={variables} />}
                         {o.type === "image" && o.content && <img src={o.content} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />}
                         {o.type === "line" && <div className="lineViz" style={{ width: "100%", height: "100%", background: o.lineColor || "currentColor" }} />}
                         {(o.type === "box" || o.type === "ellipse") && (
@@ -1661,7 +1750,7 @@ export default function VisualCanvasEditor({
                             whiteSpace: "pre-wrap",
                             wordBreak: "break-word",
                           }}>
-                            {o.content || "${texto}"}
+                            {replaceVars(o.content || "${texto}", variables)}
                           </div>
                         )}
                         {o.type === "path" && (
@@ -1807,9 +1896,63 @@ export default function VisualCanvasEditor({
                 <input style={{ display: 'block', width: '100%', marginTop: availableLogicalPrinters.length > 0 ? '0.4rem' : '0.4rem', padding: '0.5rem' }} value={printForm.printerName} placeholder="Ej. ZDesigner GK420t" onChange={(e) => setPrintForm(p => ({ ...p, printerName: e.target.value }))} disabled={printForm.isPrinting} />
               </label>
               
-              <label style={{ display: 'block', margin: 0, fontSize: '0.85rem', fontWeight: 500 }}>Cantidad de Copias
+              <label style={{ display: 'block', margin: 0, fontSize: '0.85rem', fontWeight: 500 }}>Cantidad de Copias {printTab === "excel" ? "(por registro)" : ""}</label>
                 <input style={{ display: 'block', width: '100%', marginTop: '0.4rem', padding: '0.5rem' }} type="number" min="1" value={printForm.copies} onChange={(e) => setPrintForm(p => ({ ...p, copies: Math.max(1, Number(e.target.value) || 1) }))} disabled={printForm.isPrinting} />
-              </label>
+              
+              {variables.length > 0 && (
+                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                    <button type="button" className={printTab === "manual" ? "primary" : "secondary"} onClick={() => setPrintTab("manual")}>Valores Manuales</button>
+                    <button type="button" className={printTab === "excel" ? "primary" : "secondary"} onClick={() => setPrintTab("excel")}>Cargar Excel (Lote)</button>
+                  </div>
+                  
+                  {printTab === "manual" && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {variables.map(v => (
+                        <label key={v.name} style={{ display: 'block', fontSize: '0.85rem' }}>
+                          {v.name}
+                          <input type="text" style={{ display: 'block', width: '100%', padding: '0.4rem' }} value={manualVars[v.name] || ""} onChange={e => setManualVars(p => ({ ...p, [v.name]: e.target.value }))} />
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {printTab === "excel" && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem' }}>
+                        Archivo Excel (.xlsx, .csv)
+                        <input type="file" accept=".xlsx, .xls, .csv" style={{ display: 'block', width: '100%', padding: '0.4rem' }} onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const data = await file.arrayBuffer();
+                          const workbook = XLSX.read(data);
+                          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                          const json = XLSX.utils.sheet_to_json(worksheet);
+                          setExcelData(json as Record<string,any>[]);
+                          if (json.length > 0) {
+                            setExcelCols(Object.keys(json[0] as object));
+                          }
+                        }} />
+                      </label>
+                      
+                      {excelCols.length > 0 && (
+                        <div style={{ marginTop: '1rem', background: 'var(--surface2)', padding: '0.8rem', borderRadius: '4px' }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>Mapeo de Columnas ({excelData.length} filas)</h4>
+                          {variables.map(v => (
+                            <div key={v.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                              <span style={{ fontSize: '0.85rem' }}>{v.name}</span>
+                              <select style={{ padding: '0.3rem', width: '150px' }} value={excelMapping[v.name] || ""} onChange={e => setExcelMapping(p => ({ ...p, [v.name]: e.target.value }))}>
+                                <option value="">-- Ignorar --</option>
+                                {excelCols.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="modalActions" style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>

@@ -12,8 +12,9 @@ export type XmlRequest = {
 export type PrintRequest = {
   xml: string;
   printerName: string;
+  copies: number;
   data?: Record<string, string>;
-  copies?: number;
+  dataList?: Record<string, string>[];
 };
 
 export type LogicalPrinterDto = {
