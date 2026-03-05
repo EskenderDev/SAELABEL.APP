@@ -1089,12 +1089,12 @@ export default function LabelWorkbench() {
               <button type="button" className="menuDropdownItem" onClick={() => { setShowPrintersManagerModal(true); closeAllMenus(); }}>
                 Impresoras Lógicas
               </button>
-              <div className="menuDropdownItem" style={{ cursor: 'default', padding: '0.5rem 1rem' }} onClick={(e) => e.stopPropagation()}>
+              <div className="menuDropdownItem" style={{ cursor: 'default', padding: '0.6rem 1.25rem' }} onClick={(e) => e.stopPropagation()}>
                 <label className="toggleLabel" style={{ padding: 0, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>Auto-guardado</span>
                   <span
                     className="toggleTrack mini"
-                    style={{ pointerEvents: 'auto' }}
+                    style={{ pointerEvents: 'auto', flexShrink: 0 }}
                     data-checked={String(autoSaveEnabled)}
                     onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
                     role="switch"

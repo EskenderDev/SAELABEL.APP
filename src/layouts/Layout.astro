@@ -215,15 +215,22 @@
       [data-theme="dark"] .menuDropdownList,
       [data-theme="dark"] .menuSubDropdownList,
       [data-theme="dark"] .fileMenuDropdown {
-        background: #162032 !important; border-color: #2d3f55 !important;
+        background: #162032 !important; 
+        border: 1px solid #2d3f55 !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        overflow: hidden !important;
       }
       [data-theme="dark"] .menuDropdownItem { color: #e2e8f0 !important; }
-      [data-theme="dark"] .menuDropdownItem:hover { background: #2d3f55 !important; color: var(--accent) !important; }
+      [data-theme="dark"] .menuDropdownItem:hover { background: #1e293b !important; color: var(--accent) !important; }
       [data-theme="dark"] .menuDropdownItem.active { background: #134e4a !important; }
       [data-theme="dark"] .menuDivider { background: #2d3f55 !important; }
-      [data-theme="dark"] .menuItem { color: #e2e8f0 !important; }
-      [data-theme="dark"] .menuItem:hover { color: var(--accent) !important; }
-      [data-theme="dark"] .menuItem.active { color: var(--accent) !important; }
+      [data-theme="dark"] .menuItem { color: #e2e8f0 !important; border-bottom: 2px solid transparent !important; }
+      [data-theme="dark"] .menuItem:hover { 
+        background: transparent !important; 
+        color: var(--accent) !important; 
+        border-bottom-color: var(--accent) !important; 
+      }
+      [data-theme="dark"] .menuItem.active { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
 
       /* Toggle */
       [data-theme="dark"] .toggleTrack:not([data-checked="true"]) { background-color: #334155 !important; }
