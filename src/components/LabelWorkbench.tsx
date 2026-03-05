@@ -1408,7 +1408,7 @@ export default function LabelWorkbench() {
                   selectNewDocumentType("sae");
                   setShowNewTypeModal(false);
                 }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f0fdfa', color: '#0f766e', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>🏷️</div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f0fdfa', color: '#0f766e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🏷️</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Etiqueta SAE</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>ZPL/TSPL Estándar</div>
@@ -1425,7 +1425,7 @@ export default function LabelWorkbench() {
                 onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)'; }}
                 onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
                 onClick={() => { selectNewDocumentType("saetickets"); setShowNewTypeModal(false); }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f0f9ff', color: '#0369a1', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>🎟️</div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f0f9ff', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🎟️</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Tiquete POS</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>Punto de Venta 80mm</div>
@@ -1465,7 +1465,7 @@ export default function LabelWorkbench() {
                   }, 50);
                   setShowNewTypeModal(false);
                 }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fefce8', color: '#a16207', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>🍳</div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fefce8', color: '#a16207', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>🍳</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Orden Cocina</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>Comandas y Pedidos</div>
@@ -1486,7 +1486,7 @@ export default function LabelWorkbench() {
                   setShowNewTypeModal(false);
                   setShowNewConfigModal(true);
                 }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f5f3ff', color: '#5b21b6', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>⚙️</div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f5f3ff', color: '#5b21b6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>⚙️</div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Personalizado</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>Configurar dimensiones</div>

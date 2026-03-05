@@ -1085,14 +1085,14 @@ export default function TicketDesigner({ initialXml, onUpdate, apiBaseUrl }: Tic
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
               Guía del Motor de Tiquetes
             </h3>
-            <div style={{ flex:1, overflowY:"auto", padding:"2rem", fontSize:"0.9rem", lineHeight:1.6, color:"#334155" }}>
+            <div style={{ flex:1, overflowY:"auto", padding:"2rem", fontSize:"0.9rem", lineHeight:1.6, color:"var(--text)" }}>
               <section style={{ marginBottom:"2rem" }}>
-                <h4 style={{ borderBottom:"2px solid #e2e8f0", paddingBottom:8, color:"#0f172a" }}>🚀 Introducción</h4>
+                <h4 style={{ borderBottom:"2px solid var(--border)", paddingBottom:8, color:"var(--text)" }}>🚀 Introducción</h4>
                 <p>El motor de tiquetes utiliza <b>XML</b> para definir la estructura del documento. Puedes usar variables <code>{`\${VARIABLE}`}</code> que se sustituyen al imprimir.</p>
               </section>
 
               <section style={{ marginBottom:"2rem" }}>
-                <h4 style={{ borderBottom:"2px solid #e2e8f0", paddingBottom:8, color:"#0f172a" }}>🗓️ Variables de Sistema (Automáticas)</h4>
+                <h4 style={{ borderBottom:"2px solid var(--border)", paddingBottom:8, color:"var(--text)" }}>🗓️ Variables de Sistema (Automáticas)</h4>
                 <p>Usa el prefijo <code>!</code> para variables que el servidor rellena automáticamente:</p>
                 <ul style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, paddingLeft:20, fontSize:"0.8rem" }}>
                   <li><code>{`\${!date}`}</code>: 2026-03-04</li>
@@ -1103,9 +1103,9 @@ export default function TicketDesigner({ initialXml, onUpdate, apiBaseUrl }: Tic
                   <li><code>{`\${!weekyear}`}</code>: Semana del año</li>
                 </ul>
                 
-                <h5 style={{ marginTop:15, marginBottom:5, color:"#0369a1" }}>📅 Formatos de Fecha</h5>
+                <h5 style={{ marginTop:15, marginBottom:5, color:"var(--accent)" }}>📅 Formatos de Fecha</h5>
                 <table style={{ width:"100%", fontSize:"0.75rem", borderCollapse:"collapse", marginBottom:10 }}>
-                  <thead><tr style={{ textAlign:"left", borderBottom:"1px solid #e2e8f0" }}><th>Formato</th><th>Ejemplo</th><th>Descripción</th></tr></thead>
+                  <thead><tr style={{ textAlign:"left", borderBottom:"1px solid var(--border)" }}><th>Formato</th><th>Ejemplo</th><th>Descripción</th></tr></thead>
                   <tbody>
                     <tr><td>dd/MM/yyyy</td><td>04/03/2026</td><td>Día/Mes/Año (Latam)</td></tr>
                     <tr><td>MM/dd/yyyy</td><td>03/04/2026</td><td>Mes/Día/Año (USA)</td></tr>
@@ -1117,9 +1117,9 @@ export default function TicketDesigner({ initialXml, onUpdate, apiBaseUrl }: Tic
                   </tbody>
                 </table>
 
-                <h5 style={{ marginTop:15, marginBottom:5, color:"#0369a1" }}>⏰ Formatos de Hora</h5>
+                <h5 style={{ marginTop:15, marginBottom:5, color:"var(--accent)" }}>⏰ Formatos de Hora</h5>
                 <table style={{ width:"100%", fontSize:"0.75rem", borderCollapse:"collapse", marginBottom:10 }}>
-                  <thead><tr style={{ textAlign:"left", borderBottom:"1px solid #e2e8f0" }}><th>Formato</th><th>Ejemplo</th><th>Descripción</th></tr></thead>
+                  <thead><tr style={{ textAlign:"left", borderBottom:"1px solid var(--border)" }}><th>Formato</th><th>Ejemplo</th><th>Descripción</th></tr></thead>
                   <tbody>
                     <tr><td>HH:mm</td><td>14:35</td><td>24 horas</td></tr>
                     <tr><td>hh:mm tt</td><td>02:35 PM</td><td>12 horas</td></tr>
@@ -1131,7 +1131,7 @@ export default function TicketDesigner({ initialXml, onUpdate, apiBaseUrl }: Tic
               </section>
 
               <section style={{ marginBottom:"2rem" }}>
-                <h4 style={{ borderBottom:"2px solid #e2e8f0", paddingBottom:8, color:"#0f172a" }}>🖋️ Estilos de Texto (Markdown)</h4>
+                <h4 style={{ borderBottom:"2px solid var(--border)", paddingBottom:8, color:"var(--text)" }}>🖋️ Estilos de Texto (Markdown)</h4>
                 <p>Puedes aplicar estilos directamente en cualquier campo de texto:</p>
                 <ul style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px 20px", paddingLeft:20, fontSize:"0.8rem" }}>
                   <li><code>{`**negrita**`}</code>: <b>Negrita</b></li>
@@ -1143,7 +1143,7 @@ export default function TicketDesigner({ initialXml, onUpdate, apiBaseUrl }: Tic
               </section>
 
               <section style={{ marginBottom:"2rem" }}>
-                <h4 style={{ borderBottom:"2px solid #e2e8f0", paddingBottom:8, color:"#0f172a" }}>🔄 Listas (Bloque Each)</h4>
+                <h4 style={{ borderBottom:"2px solid var(--border)", paddingBottom:8, color:"var(--text)" }}>🔄 Listas (Bloque Each)</h4>
                 <p>Para imprimir tablas de productos:</p>
                 <ol style={{ paddingLeft:20 }}>
                   <li>Agrega un bloque <b>Each</b>.</li>
@@ -1153,8 +1153,8 @@ export default function TicketDesigner({ initialXml, onUpdate, apiBaseUrl }: Tic
                 </ol>
               </section>
 
-              <section style={{ marginBottom:"2rem", background:"#f8fafc", padding:"1rem", borderRadius:8, border:"1px solid #e2e8f0" }}>
-                <h4 style={{ margin:"0 0 10px 0", color:"#0369a1" }}>💡 Tip Pro: Rellenado Rápido</h4>
+              <section style={{ marginBottom:"2rem", background:"var(--bg-subtle)", padding:"1rem", borderRadius:8, border:"1px solid var(--border)" }}>
+                <h4 style={{ margin:"0 0 10px 0", color:"var(--accent)" }}>💡 Tip Pro: Rellenado Rápido</h4>
                 <p style={{ margin:0 }}>En el modal de impresión manual, usa el botón <b>"Rellenar Todo"</b> para poner el mismo valor en todas las variables simples rápidamente.</p>
               </section>
             </div>
