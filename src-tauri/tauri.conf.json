@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SAE.STUDIO.APP",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "dev.eskender.saestudio",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -43,7 +43,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/EskenderDev/SAE_STUDIO/releases/latest/download/latest.json"
+        "https://github.com/EskenderDev/SAE.STUDIO.APP/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUyNzk0QjQ5MUU1Q0EwOTIKUldTU29Gd2VTVXQ1VWlpamIxR0RqaFFvSkM0YzhhdWFsRTI4ZXlORjNEb1JFNCtLVVdFV2V6OHkK"
     }
