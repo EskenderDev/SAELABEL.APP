@@ -30,7 +30,8 @@ if (-Not (Test-Path $OutputDir)) {
 
 Write-Host "Publishing SAE.STUDIO.Api to $OutputDir"
 # Publish as self-contained single file for Windows x64
-dotnet publish "$ProjectDir\SAE.STUDIO.Api.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "$OutputDir"
+# IncludeNativeLibrariesForSelfExtract is required for native DLLs like SQLite in single-file apps
+dotnet publish "$ProjectDir\SAE.STUDIO.Api.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "$OutputDir"
 
 $ExePath = Join-Path $OutputDir "SAE.STUDIO.Api.exe"
 $TargetName = "server-x86_64-pc-windows-msvc.exe"

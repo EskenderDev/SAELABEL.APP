@@ -7,7 +7,7 @@
   
   ; Create the service using the bundled server executable
   ; Note: $INSTDIR is the main installation folder
-  ExecWait 'sc.exe create "SAE.STUDIO.Api" binPath= "$INSTDIR\server-x86_64-pc-windows-msvc.exe" start= auto displayname= "SAE STUDIO Server"'
+  ExecWait 'sc.exe create "SAE.STUDIO.Api" binPath= "$INSTDIR\server.exe" start= auto displayname= "SAE STUDIO Server"'
   
   ; Configure service to recover on failure
   ExecWait 'sc.exe failure "SAE.STUDIO.Api" reset= 0 actions= restart/60000/restart/60000/restart/60000'
