@@ -1026,7 +1026,7 @@ export default function LabelWorkbench() {
               </button>
               <div className="menuDivider" />
               <details className="menuSubDropdown" open={activeSubMenu === 'labels'}>
-                <summary className="menuDropdownItem" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.65rem 1.5rem' }} onClick={(e) => { e.preventDefault(); toggleSubMenu('labels'); }}>
+                <summary className="menuDropdownItem" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.65rem 1.25rem', boxSizing: 'border-box' }} onClick={(e) => { e.preventDefault(); toggleSubMenu('labels'); }}>
                   <span>Etiquetas recientes</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
                 </summary>
@@ -1040,7 +1040,7 @@ export default function LabelWorkbench() {
                 </div>
               </details>
               <details className="menuSubDropdown" open={activeSubMenu === 'tickets'}>
-                <summary className="menuDropdownItem" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.65rem 1.5rem' }} onClick={(e) => { e.preventDefault(); toggleSubMenu('tickets'); }}>
+                <summary className="menuDropdownItem" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.65rem 1.25rem', boxSizing: 'border-box' }} onClick={(e) => { e.preventDefault(); toggleSubMenu('tickets'); }}>
                   <span>Tiquetes recientes</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
                 </summary>
@@ -1089,8 +1089,8 @@ export default function LabelWorkbench() {
               <button type="button" className="menuDropdownItem" onClick={() => { setShowPrintersManagerModal(true); closeAllMenus(); }}>
                 Impresoras Lógicas
               </button>
-              <div className="menuDropdownItem" style={{ cursor: 'default', padding: '0.65rem 1.5rem', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
-                <label className="toggleLabel" style={{ padding: 0, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
+              <div className="menuDropdownItem" style={{ cursor: 'default', padding: '0.65rem 1.25rem', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
+                <label className="toggleLabel" style={{ padding: 0, width: 'auto', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text)' }}>Auto-guardado</span>
                   <span
                     className="toggleTrack mini"
@@ -2819,10 +2819,11 @@ export default function LabelWorkbench() {
           padding: 0.6rem 1.2rem;
           font-size: 0.85rem;
           font-weight: 500;
-          color: var(--muted);
+          color: #4b5563;
           cursor: pointer;
           border-bottom: 2px solid transparent;
           transition: all 0.2s ease;
+          letter-spacing: 0.01em;
         }
         .menuItem:hover {
           background: #f8fafc;
@@ -2874,7 +2875,8 @@ export default function LabelWorkbench() {
           font-weight: 500;
           text-align: left;
           display: block;
-          width: 100%;
+          width: auto;
+          box-sizing: border-box;
           cursor: pointer;
         }
         .menuDropdownItem:hover {
