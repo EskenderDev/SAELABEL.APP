@@ -44,14 +44,14 @@ import Layout from '../layouts/Layout.astro';
           <p class="text-slate-300">Puedes disparar impresiones enviando un simple <code>POST</code> a la API local:</p>
           <div class="bg-slate-900/50 rounded-xl p-6 border border-white/5 font-mono text-sm overflow-x-auto">
             <pre class="text-emerald-400">POST http://localhost:5117/api/labels/print</pre>
-            <pre class="text-slate-400 mt-4">{
+            <pre class="text-slate-400 mt-4">&#123;
   "xml": "&lt;SaeLabels&gt;...&lt;/SaeLabels&gt;",
   "printerName": "Zebra_ZD420",
-  "data": {
+  "data": &#123;
     "CLIENTE": "Alejandro Eskender",
     "PRODUCTO": "Premium Label v2"
-  }
-}</pre>
+  &#125;
+&#125;</pre>
           </div>
         </div>
       </section>
