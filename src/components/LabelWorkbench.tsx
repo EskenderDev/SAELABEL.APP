@@ -1089,8 +1089,8 @@ export default function LabelWorkbench() {
               <button type="button" className="menuDropdownItem" onClick={() => { setShowPrintersManagerModal(true); closeAllMenus(); }}>
                 Impresoras Lógicas
               </button>
-              <div className="menuDropdownItem" style={{ cursor: 'default', padding: '0.65rem 1.25rem', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
-                <label className="toggleLabel" style={{ padding: 0, width: 'auto', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
+              <div className="menuDropdownItem" style={{ cursor: 'default', padding: '0.65rem 1.25rem', boxSizing: 'border-box', width: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                <label className="toggleLabel" style={{ padding: 0, width: 'auto', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none', gap: '2rem' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text)' }}>Auto-guardado</span>
                   <span
                     className="toggleTrack mini"
@@ -1183,10 +1183,10 @@ export default function LabelWorkbench() {
         </nav>
 
         {/* ── Conmutador de Vistas (Tabs) ── */}
-        <div style={{
+        <div className="tabBarContainer" style={{
           display: 'flex', alignItems: 'center', gap: '2px',
           padding: '0 8px', borderBottom: '1px solid var(--border,#e2e8f0)',
-          background: '#f8fafc', flexShrink: 0, height: '36px'
+          background: 'var(--bg-tabs, #f8fafc)', flexShrink: 0, height: '36px'
         }}>
           {(['sae', 'saetickets'] as const).map(k => (
               <button key={k} onClick={() => handleSwitchKind(k)}
@@ -1387,31 +1387,64 @@ export default function LabelWorkbench() {
       {showNewTypeModal && (
         <Portal>
         <div className="modalBackdrop">
-          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
-            <h3>Nueva Etiqueta</h3>
-            <p style={{ marginBottom: "0.8rem" }}>Selecciona el tipo de etiqueta.</p>
-            <div className="typeChoiceRow" style={{ display:"grid", gridTemplateColumns:"1fr", gap:"0.5rem" }}>
-              <button type="button" className="secondary" onClick={() => selectNewDocumentType("sae")}>Etiqueta SAE (ZPL/TSPL)</button>
-              <button type="button" className="secondary" onClick={() => {
-                 setNewDocumentDraft(p => ({ ...p, kind: "sae", name: "Nueva Etiqueta SAE" }));
-                 setShowNewTypeModal(false);
-                 setShowNewConfigModal(true);
-              }}>Configuración personalizada</button>
+          <div className="modalCard" onClick={(e) => e.stopPropagation()} style={{ width: '560px', maxWidth: '95vw', padding: '2rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.75rem', fontWeight: 800 }}>Nuevo Documento</h2>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.95rem' }}>Selecciona el tipo de proyecto para comenzar</p>
             </div>
-            <h3>Galería de Plantillas</h3>
-            <p style={{ marginBottom: "0.8rem" }}>Elige una plantilla para comenzar.</p>
-            
-            <div style={{ fontSize:"0.7rem", fontWeight:700, color:"var(--muted,#64748b)", textTransform:"uppercase", marginBottom:"0.4rem" }}>Tiquetes y Órdenes</div>
-            <div className="typeChoiceRow" style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:"0.75rem", marginBottom:"1rem" }}>
-              <button type="button" style={{ background:"#f0fdf4", color:"#16a34a", borderColor:"#16a44a", padding:"1rem", textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", gap:"0.5rem" }} onClick={() => selectNewDocumentType("saetickets")}>
-                <span style={{ fontSize:"1.5rem" }}>🎟️</span>
-                <span style={{ fontWeight:600 }}>Tiquete Estándar</span>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+              {/* Opción: Etiqueta SAE */}
+              <button type="button" 
+                style={{ 
+                  background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '16px', 
+                  padding: '1.5rem', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onClick={() => {
+                  setNewDocumentDraft({ ...newDocumentDraft, ...LABEL_PRESETS[0], kind: "sae" });
+                  selectNewDocumentType("sae");
+                  setShowNewTypeModal(false);
+                }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f0fdfa', color: '#0f766e', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>🏷️</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Etiqueta SAE</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>ZPL/TSPL Estándar</div>
+                </div>
               </button>
-              
-              <button type="button" style={{ background:"#fefce8", color:"#a16207", borderColor:"#ca8a04", padding:"1rem", textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", gap:"0.5rem" }} onClick={() => {
-                selectNewDocumentType("saetickets");
-                setTimeout(() => {
-                  setXml(`<?xml version="1.0" encoding="utf-8"?>
+
+              {/* Opción: Tiquete Estándar */}
+              <button type="button" 
+                style={{ 
+                  background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '16px', 
+                  padding: '1.5rem', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onClick={() => { selectNewDocumentType("saetickets"); setShowNewTypeModal(false); }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f0f9ff', color: '#0369a1', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>🎟️</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Tiquete POS</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>Punto de Venta 80mm</div>
+                </div>
+              </button>
+
+              {/* Opción: Orden de Cocina */}
+              <button type="button" 
+                style={{ 
+                  background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '16px', 
+                  padding: '1.5rem', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onClick={() => {
+                  selectNewDocumentType("saetickets");
+                  setTimeout(() => {
+                    setXml(`<?xml version="1.0" encoding="utf-8"?>
 <saetickets version="1.0">
   <setup width="42"/>
   <commands>
@@ -1428,25 +1461,41 @@ export default function LabelWorkbench() {
     <cut/>
   </commands>
 </saetickets>`);
-                  setDocName("Orden de Cocina");
-                }, 50);
-              }}>
-                <span style={{ fontSize:"1.5rem" }}>🍳</span>
-                <span style={{ fontWeight:600 }}>Orden Cocina</span>
+                    setDocName("Orden de Cocina");
+                  }, 50);
+                  setShowNewTypeModal(false);
+                }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fefce8', color: '#a16207', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>🍳</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Orden Cocina</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>Comandas y Pedidos</div>
+                </div>
+              </button>
+
+              {/* Opción: Configuración Personalizada */}
+              <button type="button" 
+                style={{ 
+                  background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '16px', 
+                  padding: '1.5rem', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onClick={() => {
+                  setNewDocumentDraft(p => ({ ...p, kind: "sae", name: "Nuevo Documento" }));
+                  setShowNewTypeModal(false);
+                  setShowNewConfigModal(true);
+                }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f5f3ff', color: '#5b21b6', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.5rem' }}>⚙️</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Personalizado</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4 }}>Configurar dimensiones</div>
+                </div>
               </button>
             </div>
 
-            <div style={{ fontSize:"0.7rem", fontWeight:700, color:"var(--muted,#64748b)", textTransform:"uppercase", marginBottom:"0.4rem" }}>Etiquetas</div>
-            <div className="typeChoiceRow" style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"0.5rem" }}>
-              {LABEL_PRESETS.slice(0, 3).map(p => (
-                <button key={p.id} type="button" className="secondary" style={{ padding:"0.6rem", fontSize:"0.75rem" }} onClick={() => {
-                   setNewDocumentDraft({ ...newDocumentDraft, ...p, kind: "sae" });
-                   selectNewDocumentType("sae"); // This will trigger applyPreset internally or we can do it here
-                }}>{p.name}</button>
-              ))}
-            </div>
-            <div className="modalActions">
-              <button type="button" className="secondary" onClick={() => setShowNewTypeModal(false)}>Cancelar</button>
+            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+              <button type="button" className="secondary" style={{ padding: '0.75rem 2.5rem', borderRadius: '12px' }} onClick={() => setShowNewTypeModal(false)}>Cancelar</button>
             </div>
           </div>
         </div>
@@ -2874,14 +2923,19 @@ export default function LabelWorkbench() {
           font-size: 0.85rem;
           font-weight: 500;
           text-align: left;
-          display: block;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
           width: auto;
           box-sizing: border-box;
           cursor: pointer;
+          border-left: 3.5px solid transparent;
+          transition: all 0.2s ease;
         }
         .menuDropdownItem:hover {
-          background: #f1f5f9;
+          background: var(--hover-bg, #f1f5f9);
           color: var(--accent);
+          border-left-color: var(--accent);
         }
         .menuDropdownItem.active {
           background: #e6fffb;

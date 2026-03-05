@@ -17,14 +17,15 @@
         --text: #0f172a;
         --muted: #475569;
         --accent: #0f766e;
-        --border: #e2e8f0;
         --bg-card: #ffffff;
+        --bg-tabs: #f8fafc;
+        --hover-bg: #f1f5f9;
+        --border: #e2e8f0;
         --bg-subtle: #f8fafc;
         --surface: #ffffff;
         --surface-alt: #f1f5f9;
         --app-vh: 100vh;
         --text-muted: #64748b;
-        --bg-subtle: rgba(15, 118, 110, 0.05);
         --success-bg: #d1fae5;
         --success-text: #065f46;
         --success-border: #bbf7d0;
@@ -111,8 +112,10 @@
         --text: #e2e8f0 !important;
         --muted: #94a3b8 !important;
         --accent: #2dd4bf !important;
-        --border: #2d3f55 !important;
-        --bg-card: #162032 !important;
+        --border: #2d3f55;
+        --bg-card: #162032;
+        --bg-tabs: #162032;
+        --hover-bg: #1e293b;
         --bg-subtle: #0f172a !important;
         --surface: #1e293b !important;
         --surface-alt: #0d1525 !important;
@@ -162,6 +165,9 @@
         font-weight: 800 !important;
       }
       [data-theme="dark"] .designerTab.active svg { color: var(--accent) !important; }
+
+      /* Background for tab bar to match header in dark mode */
+      [data-theme="dark"] .tabBarContainer { background: var(--bg-tabs) !important; border-bottom-color: #2d3f55 !important; }
 
       /* Canvas/viewport */
       [data-theme="dark"] .previewViewport { background: #0f172a !important; }
@@ -217,22 +223,38 @@
       [data-theme="dark"] .fileMenuDropdown {
         background: #162032 !important; 
         border: 1px solid #2d3f55 !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
         overflow: hidden !important;
+        box-sizing: border-box !important;
       }
-      [data-theme="dark"] .menuDropdownItem { color: #e2e8f0 !important; }
-      [data-theme="dark"] .menuDropdownItem:hover { background: #1e293b !important; color: var(--accent) !important; }
+      [data-theme="dark"] .menuDropdownItem { 
+        color: #e2e8f0 !important; 
+        border-left: 3.5px solid transparent !important;
+        transition: all 0.2s ease !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+      }
+      [data-theme="dark"] .menuDropdownItem:hover,
+      [data-theme="dark"] .menuSubDropdown summary:hover { 
+        background: var(--hover-bg) !important; 
+        color: var(--accent) !important; 
+        border-left-color: var(--accent) !important;
+      }
       [data-theme="dark"] .menuDropdownItem.active { background: #134e4a !important; }
       [data-theme="dark"] .menuDivider { background: #2d3f55 !important; }
-      [data-theme="dark"] .menuItem { color: #e2e8f0 !important; border-bottom: 2px solid transparent !important; }
+      [data-theme="dark"] .menuItem { 
+        color: #e2e8f0 !important; 
+        border-bottom: 2.5px solid transparent !important; 
+        transition: all 0.2s ease !important;
+      }
       [data-theme="dark"] .menuItem:hover { 
-        background: transparent !important; 
+        background: #162032 !important; 
         color: var(--accent) !important; 
         border-bottom-color: var(--accent) !important; 
       }
       [data-theme="dark"] .menuItem.active { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
 
-      /* Toggle */
+      /* Toggle tweaks */
       [data-theme="dark"] .toggleTrack:not([data-checked="true"]) { background-color: #334155 !important; }
 
       /* Custom checkbox */
