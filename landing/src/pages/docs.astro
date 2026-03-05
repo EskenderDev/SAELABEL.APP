@@ -10,7 +10,7 @@ import Layout from '../layouts/Layout.astro';
 
     <header class="mb-12">
       <a href="/" class="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-2 mb-8 group">
-        <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         Volver al inicio
       </a>
       <h1 class="text-4xl lg:text-5xl font-bold text-white mb-4">Documentación: Etiquetas y Tickets</h1>
@@ -46,7 +46,7 @@ import Layout from '../layouts/Layout.astro';
           <!-- Etiquetas -->
           <div class="bg-slate-900/50 rounded-xl p-6 border border-white/5 font-mono text-sm overflow-x-auto">
             <h3 class="text-white font-sans text-sm font-semibold mb-3">Imprimir Etiqueta Industrial (ZPL/EPL)</h3>
-            <pre class="text-emerald-400">POST http://localhost:5117/api/labels/print</pre>
+            <pre class="text-emerald-400">POST https://localhost:5117/api/labels/print</pre>
             <pre class="text-slate-400 mt-4">&#123;
   "xml": "&lt;SaeLabels&gt;...&lt;/SaeLabels&gt;",
   "printerName": "Zebra_ZD420",
@@ -60,7 +60,7 @@ import Layout from '../layouts/Layout.astro';
           <!-- Tickets -->
           <div class="bg-slate-900/50 rounded-xl p-6 border border-white/5 font-mono text-sm overflow-x-auto">
             <h3 class="text-white font-sans text-sm font-semibold mb-3">Imprimir Ticket de Recibo (ESC/POS)</h3>
-            <pre class="text-blue-400">POST http://localhost:5117/api/tickets/print</pre>
+            <pre class="text-blue-400">POST https://localhost:5117/api/tickets/print</pre>
             <pre class="text-slate-400 mt-4">&#123;
   "xml": "&lt;SaeTickets&gt;&lt;Header&gt;...&lt;/Header&gt;&lt;Body...&gt;&lt;/SaeTickets&gt;",
   "printerName": "Epson_TM_T20",
