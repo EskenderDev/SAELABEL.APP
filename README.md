@@ -1,47 +1,48 @@
-# SAELABEL.App
+# SAE.STUDIO
 
-Frontend desktop con **Tauri 2 + Astro + React** para consumir `SAELABEL.Api`.
+**Infraestructura Profesional para el Diseño y Gestión de Etiquetado Térmico**
 
-## Requisitos
-- Node.js 20+
-- Rust toolchain (para Tauri)
-- Backend `SAELABEL.Api` corriendo en `https://localhost:7097`
+SAE.STUDIO es un ecosistema integrado para la creación, gestión e impresión de etiquetas industriales. Combina la potencia de un motor de renderizado y comunicación en **C# .NET** con una interfaz de diseño moderna construida en **Tauri**, **React** y **Astro**.
 
-## Variables de entorno
-Crear `.env` opcional:
+---
 
-```bash
-PUBLIC_SAELABEL_API_BASE_URL=https://localhost:7097
-```
+## 🏛️ Arquitectura del Sistema
 
-## Instalar dependencias
+El sistema utiliza un modelo de **Sidecar Service**:
+1. **SAE.STUDIO App (Frontend):** Interfaz de escritorio de alta performance que incluye el **Diseñador Visual de Etiquetas**.
+2. **SAE.STUDIO.Api (Backend):** Un servicio de Windows que se ejecuta en segundo plano, exponiendo una API REST local en el puerto `5117` para procesar renders y gestionar la comunicación directa con hardware de impresión (ZPL/EPL).
+
+## 🚀 Requisitos de Desarrollo
+- **Entorno Web:** Node.js 20+
+- **Escritorio:** Rust toolchain (Requerido para compilar Tauri)
+- **Backend:** .NET 10.0 SDK
+- **Hardware:** Impresoras térmicas (Zebra, Honeywell, Brother, etc.)
+
+## 🛠️ Comandos de Inicio rápido
+
+### Instalación de dependencias
 ```bash
 npm install
 ```
 
-## Desarrollo web
-```bash
-npm run dev
-```
-
-## Desarrollo desktop (Tauri)
+### Desarrollo del Diseñador (Escritorio)
 ```bash
 npm run tauri:dev
 ```
 
-## OpenAPI
-Genera cliente tipado desde el backend:
-
+### Generación de Cliente API (OpenAPI)
+Si realizas cambios en el backend, regenera el cliente tipado:
 ```bash
 npm run gen:api
 ```
+*Se intentará descargar el spec desde `http://localhost:5117/openapi/v1.json`.*
 
-Detalles:
-- Intenta descargar el spec desde `https://localhost:7097/openapi/v1.json`.
-- Si falla (backend apagado/certificado local), usa `openapi/saelabel.openapi.json` en cache.
-- Variables opcionales:
-  - `SAELABEL_OPENAPI_URL` para cambiar la URL del spec.
-  - `SAELABEL_OPENAPI_TIMEOUT_MS` para timeout de descarga.
+## 📄 Guías y Documentación
+- **Guía de Despliegue:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Pasos detallados para configurar actualizaciones y el servicio de Windows.
+- **Atajos del Editor:** [docs/EDITOR_COMMANDS.md](docs/EDITOR_COMMANDS.md) - Optimiza tu flujo de trabajo en el canvas.
 
-## Documentacion Del Editor Visual
-- Comandos y atajos del canvas: [docs/EDITOR_COMMANDS.md](docs/EDITOR_COMMANDS.md)
+## ⚖️ Licencia
+Este proyecto está distribuido bajo la **MIT License**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+© 2026 **EskenderDev**

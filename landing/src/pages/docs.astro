@@ -1,0 +1,82 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Documentación | SAE.STUDIO">
+  <main class="relative pt-24 pb-16 w-full max-w-4xl mx-auto px-6">
+    <div class="fixed top-0 left-0 w-full h-full -z-10 bg-[#0B0F19] overflow-hidden">
+        <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px]"></div>
+    </div>
+
+    <header class="mb-12">
+      <a href="/" class="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-2 mb-8 group">
+        <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Volver al inicio
+      </a>
+      <h1 class="text-4xl lg:text-5xl font-bold text-white mb-4">Documentación del Ecosistema</h1>
+      <p class="text-slate-400 text-lg">Guía rápida para integrar el motor de etiquetas SAE.STUDIO en tus proyectos.</p>
+    </header>
+
+    <div class="space-y-12">
+      <!-- Architecture -->
+      <section>
+        <h2 class="text-2xl font-semibold text-white mb-4 flex items-center gap-3">
+          <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">01</span>
+          Arquitectura Sidecar
+        </h2>
+        <div class="prose prose-invert max-w-none text-slate-300">
+          <p>
+            SAE.STUDIO no es solo un diseñador; es una <strong>infraestructura</strong>. Al instalar la aplicación, se registra un servicio de Windows llamado <code>SAE.STUDIO.Api</code> que escucha en el puerto local <code>5117</code>.
+          </p>
+          <p>
+            Esto permite que cualquier sitio web (incluso desde el navegador) o aplicación móvil en la misma red pueda enviar órdenes de impresión directamente a las impresoras térmicas conectadas.
+          </p>
+        </div>
+      </section>
+
+      <!-- API Integration -->
+      <section>
+        <h2 class="text-2xl font-semibold text-white mb-4 flex items-center gap-3">
+          <span class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold">02</span>
+          Integración vía API JSON
+        </h2>
+        <div class="space-y-4">
+          <p class="text-slate-300">Puedes disparar impresiones enviando un simple <code>POST</code> a la API local:</p>
+          <div class="bg-slate-900/50 rounded-xl p-6 border border-white/5 font-mono text-sm overflow-x-auto">
+            <pre class="text-emerald-400">POST http://localhost:5117/api/labels/print</pre>
+            <pre class="text-slate-400 mt-4">{
+  "xml": "&lt;SaeLabels&gt;...&lt;/SaeLabels&gt;",
+  "printerName": "Zebra_ZD420",
+  "data": {
+    "CLIENTE": "Alejandro Eskender",
+    "PRODUCTO": "Premium Label v2"
+  }
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Templates -->
+      <section class="glass p-8 rounded-2xl border border-white/10">
+        <h2 class="text-2xl font-semibold text-white mb-4">Diseñador Visual</h2>
+        <p class="text-slate-400 mb-6">
+          Utiliza el editor de escritorio para crear plantillas <code>.SaeLabels</code>. Estas plantillas son XMLs ultra-ligeros que definen el layout. El servicio <code>SAE.STUDIO.Api</code> se encarga de inyectar las variables y convertirlo a comandos ZPL/EPL binarios.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 bg-white/5 rounded-lg border border-white/5">
+            <h4 class="text-white font-medium mb-1">Inyección de Variables</h4>
+            <p class="text-xs text-slate-500">Mapeo dinámico de datos JSON a campos de la etiqueta.</p>
+          </div>
+          <div class="p-4 bg-white/5 rounded-lg border border-white/5">
+            <h4 class="text-white font-medium mb-1">Soporte Multi-Arquitectura</h4>
+            <p class="text-xs text-slate-500">Compilado nativamente para Windows x64.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mt-20 pt-8 border-t border-white/5 text-center">
+      <p class="text-slate-500 text-sm">¿Necesitas ayuda técnica? Visita el <a href="https://github.com/EskenderDev/SAE.STUDIO.APP/issues" class="text-emerald-400 hover:underline">repositorio en GitHub</a>.</p>
+    </footer>
+  </main>
+</Layout>
