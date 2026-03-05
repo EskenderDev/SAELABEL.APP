@@ -1569,9 +1569,16 @@ export default function VisualCanvasEditor({
                       )}
                       {sel.type === "barcode" && sel.barcodeKind !== "QR" && (
                         <>
-                          <label className="full checkboxLabel">
-                            <input type="checkbox" checked={!!sel.showText} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, showText: e.target.checked } : x))} />
-                            Mostrar texto
+                          <label className="toggleLabel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', cursor: 'pointer', margin: '0.4rem 0' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Mostrar texto</span>
+                            <div style={{ position: 'relative' }}>
+                              <input type="checkbox" className="toggleInput" id="chk-show-text"
+                                checked={!!sel.showText} 
+                                onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, showText: e.target.checked } : x))} />
+                              <label htmlFor="chk-show-text" className="toggleTrack">
+                                <div className="toggleThumb"></div>
+                              </label>
+                            </div>
                           </label>
                           <label className="full">Posición texto
                             <select value={sel.textPosition || "bottom"} onChange={e => setObjects(p => p.map(x => x.id === sel.id ? { ...x, textPosition: e.target.value as any } : x))}>
