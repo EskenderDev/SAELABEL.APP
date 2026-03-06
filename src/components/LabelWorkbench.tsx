@@ -1436,8 +1436,8 @@ export default function LabelWorkbench() {
         <footer className="studioFooter">
           <div className="footerStatus">
             <span className={`dot ${saveStatus}`} /> 
-            <span style={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {saveStatus === "saved" && "Guardado"}
+            <span style={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }} title={saveStatus === "saved" && !fileHandle ? "Usa 'Guardar Como' para crear una copia física en tu computadora." : ""}>
+              {saveStatus === "saved" && (fileHandle ? "Guardado (Local y en Nube)" : "Guardado en Memoria (Borrador)")}
               {saveStatus === "saving" && "Guardando..."}
               {saveStatus === "modified" && "Cambios pendientes"}
               {saveStatus === "error" && "Error al guardar"}
