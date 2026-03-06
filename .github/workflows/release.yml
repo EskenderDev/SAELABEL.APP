@@ -44,7 +44,14 @@ jobs:
 
       - name: Build Server Sidecar
         working-directory: ./SAELABEL.App
-        run: pwsh .\scripts\build_server.ps1
+        run: |
+          try {
+            pwsh .\scripts\build_server.ps1
+          } catch {
+            Write-Error "Build server failed. Diagnostic info:"
+            Get-ChildItem -Recurse -Depth 2
+            throw $_
+          }
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable

@@ -6,14 +6,16 @@
   ExecWait 'sc.exe delete "SAE.STUDIO.Api"'
   
   ; Create the service using the bundled server executable
-  ; Note: $INSTDIR is the main installation folder
-  ExecWait 'sc.exe create "SAE.STUDIO.Api" binPath= "$INSTDIR\SAE.STUDIO.Api.exe" start= auto displayname= "SAE STUDIO Server"'
+  ; We use the original .exe name (SAE.STUDIO.Api.exe) which is copied into $INSTDIR by Tauri resources
+  ExecWait 'sc.exe create "SAE.STUDIO.Api" binPath= "\"$INSTDIR\SAE.STUDIO.Api.exe\"" start= auto displayname= "SAE STUDIO Server"'
   
-  ; Configure service to recover on failure
-  ExecWait 'sc.exe failure "SAE.STUDIO.Api" reset= 0 actions= restart/60000/restart/60000/restart/60000'
+  ; Configure service to recover on failure: restart after 60s
+  ExecWait 'sc.exe failure "SAE.STUDIO.Api" reset= 86400 actions= restart/60000/restart/60000/restart/60000'
   
   ; Start the service
   ExecWait 'sc.exe start "SAE.STUDIO.Api"'
+  
+  DetailPrint "SAE.STUDIO.Api service configuration completed."
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL

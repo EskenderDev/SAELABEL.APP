@@ -2,8 +2,6 @@
 
 $ErrorActionPreference = "Stop"
 
-# Use paths relative to the current working directory (repo root) 
-# instead of PSScriptRoot which can be fragile in CI
 $RepoRoot = (Get-Item .).FullName
 $PotentialPaths = @(
     "..\SAE_STUDIO\src\SAE.STUDIO.Api",
@@ -34,9 +32,9 @@ if (-Not (Test-Path $OutputDir)) {
 }
 
 Write-Host "Publishing SAE.STUDIO.Api to $OutputDir"
-# Publish as self-contained single file for Windows x64
-# IncludeNativeLibrariesForSelfExtract is required for native DLLs like SQLite in single-file apps
-dotnet publish "$ProjectDir\SAE.STUDIO.Api.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "$OutputDir"
+# We publish as self-contained but NOT single-file to ensure the service 
+# can find its dependencies and schemas correctly in the installation folder.
+dotnet publish "$ProjectDir\SAE.STUDIO.Api.csproj" -c Release -r win-x64 --self-contained true -o "$OutputDir"
 
 $ExePath = Join-Path $OutputDir "SAE.STUDIO.Api.exe"
 $TargetName = "SAE.STUDIO.Api-x86_64-pc-windows-msvc.exe"
@@ -45,19 +43,20 @@ $TargetPath = Join-Path $OutputDir $TargetName
 Write-Host "Renaming the executable to match Tauri sidecar requirements..."
 if (Test-Path $ExePath) {
     if (Test-Path $TargetPath) { Remove-Item -Force $TargetPath }
-    Rename-Item -Path $ExePath -NewName $TargetName -Force
-    Write-Host "Successfully renamed to $TargetName"
+    # We copy instead of move/rename because the NSIS hook might need the original name
+    Copy-Item -Path $ExePath -Destination $TargetPath -Force
+    Write-Host "Successfully prepared $TargetName"
 } else {
     throw "Published executable $ExePath was not found!"
 }
 
-# Copy the Schemas directory if it exists in the published output so Tauri can bundle it
-$PublishedSchemas = Join-Path $OutputDir "Schemas"
-if (-Not (Test-Path $PublishedSchemas)) {
-    # If not in output, copy direct from source to output dir
-    $SourceSchemas = Join-Path $ProjectDir "Schemas"
+# Ensure Schemas directory is in the output
+$SourceSchemas = Join-Path $ProjectDir "Schemas"
+$DestSchemas = Join-Path $OutputDir "Schemas"
+if (Test-Path $SourceSchemas) {
+    if (Test-Path $DestSchemas) { Remove-Item -Path $DestSchemas -Recurse -Force }
     Copy-Item -Path $SourceSchemas -Destination $OutputDir -Recurse -Force
-    Write-Host "Copied Schemas directory to $OutputDir"
+    Write-Host "Copied Schemas directory to output."
 }
 
 Write-Host "Server compiled and copied successfully."
