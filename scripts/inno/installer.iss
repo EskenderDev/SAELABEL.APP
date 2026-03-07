@@ -2,7 +2,7 @@
 ;  SAE STUDIO APP - INSTALLER
 ;===========================================================
 #define MyAppName "SAE.STUDIO.APP"
-#define MyAppVersion "0.5.5"
+#define MyAppVersion "0.5.6"
 #define MyPublisher "EskenderDev"
 #define MyAppExeName "sae_studio_app.exe"
 #define MyServiceExe "SAE.STUDIO.Api.exe"

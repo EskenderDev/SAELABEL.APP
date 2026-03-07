@@ -19,9 +19,9 @@ Write-Host "`n[1/3] Building .NET API Server (Single-File)..." -ForegroundColor 
 
 # 2. Build Tauri Frontend & Rust Core
 Write-Host "`n[2/3] Building Tauri Application (Release)..." -ForegroundColor Yellow
-Set-Location $RootDir.FullName
+Set-Location $RootDir
 npm run tauri:build -- --no-bundle
-Set-Location $ScriptsDir.FullName
+Set-Location $ScriptsDir
 
 # 3. Generate Inno Setup Installer
 Write-Host "`n[3/3] Compiling Inno Setup Installer..." -ForegroundColor Yellow
