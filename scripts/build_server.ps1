@@ -32,9 +32,9 @@ if (-Not (Test-Path $OutputDir)) {
 }
 
 Write-Host "Publishing SAE.STUDIO.Api to $OutputDir"
-# We publish as self-contained but NOT single-file to ensure the service 
-# can find its dependencies and schemas correctly in the installation folder.
-dotnet publish "$ProjectDir\SAE.STUDIO.Api.csproj" -c Release -r win-x64 --self-contained true -o "$OutputDir"
+# We publish as self-contained and SINGLE-FILE to ensure all dependencies 
+# are bundled within the executable for easy deployment via Tauri sidecars.
+dotnet publish "$ProjectDir\SAE.STUDIO.Api.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "$OutputDir"
 
 $ExePath = Join-Path $OutputDir "SAE.STUDIO.Api.exe"
 $TargetName = "SAE.STUDIO.Api-x86_64-pc-windows-msvc.exe"
